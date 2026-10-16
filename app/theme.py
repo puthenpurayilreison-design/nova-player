@@ -12,7 +12,7 @@ PRESETS = {
     "midnight": {"name": "Midnight", "dark": True, "accent": "#22D3EE", "bg": "#0E0E11", "sidebar": "#121216",
                  "surface": "#17171C", "surface2": "#1F1F26", "surface3": "#2A2A33", "border": "#26262E",
                  "text": "#F2F2F5", "text2": "#A3A3AE", "text3": "#6B6B76"},
-    "oled": {"name": "OLED nero", "dark": True, "accent": "#E5E5EA", "bg": "#000000", "sidebar": "#000000",
+    "oled": {"name": "OLED black", "dark": True, "accent": "#E5E5EA", "bg": "#000000", "sidebar": "#000000",
              "surface": "#0B0B0C", "surface2": "#141416", "surface3": "#1F1F22", "border": "#1A1A1D",
              "text": "#FFFFFF", "text2": "#9A9AA2", "text3": "#5E5E66"},
     "ocean": {"name": "Ocean", "dark": True, "accent": "#3EA6FF", "bg": "#0A1018", "sidebar": "#0C141E",
@@ -24,7 +24,7 @@ PRESETS = {
     "sakura": {"name": "Sakura", "dark": True, "accent": "#FF7EB6", "bg": "#130D11", "sidebar": "#171015",
                "surface": "#1D141A", "surface2": "#261B22", "surface3": "#33242E", "border": "#2E2029",
                "text": "#FBF1F6", "text2": "#BFA3B2", "text3": "#7F6573"},
-    "light": {"name": "Chiaro", "dark": False, "accent": "#0891B2", "bg": "#F6F6F8", "sidebar": "#EEEEF2",
+    "light": {"name": "Light", "dark": False, "accent": "#0891B2", "bg": "#F6F6F8", "sidebar": "#EEEEF2",
               "surface": "#FFFFFF", "surface2": "#F1F1F4", "surface3": "#E4E4EA", "border": "#E2E2E8",
               "text": "#141418", "text2": "#5E5E69", "text3": "#9696A0"},
 }

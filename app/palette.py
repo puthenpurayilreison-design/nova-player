@@ -30,7 +30,7 @@ class CommandPalette(QDialog):
         v.setContentsMargins(12, 12, 12, 10)
         v.setSpacing(8)
         self.q = QLineEdit()
-        self.q.setPlaceholderText("Cerca un film o un comando…  (Invio per aprire, Esc per chiudere)")
+        self.q.setPlaceholderText("Search a movie or a command…  (Enter to open, Esc to close)")
         self.q.textChanged.connect(self.fill)
         self.q.installEventFilter(self)
         v.addWidget(self.q)
@@ -38,7 +38,7 @@ class CommandPalette(QDialog):
         self.list.itemActivated.connect(lambda it: self.run(it))
         self.list.itemClicked.connect(lambda it: self.run(it))
         v.addWidget(self.list)
-        v.addWidget(label("↑ ↓ per scegliere · Invio per aprire", "faint"))
+        v.addWidget(label("↑ ↓ to choose · Enter to open", "faint"))
         w = min(640, win.width() - 80)
         self.setFixedSize(w, 430)
         g = win.geometry()
@@ -57,25 +57,25 @@ class CommandPalette(QDialog):
         p = w.player
         clip = QApplication.clipboard().text().strip()
         cmds = [
-            ("Apri file…", "folder", lambda: (w.go("player"), p.open_files())),
-            ("Aggiungi link alla libreria…", "plus", lambda: (w.go("library"), w.page("library").add_links())),
+            ("Open file…", "folder", lambda: (w.go("player"), p.open_files())),
+            ("Add links to the library…", "plus", lambda: (w.go("library"), w.page("library").add_links())),
         ]
         if clip.startswith(("http://", "https://", "magnet:")):
-            cmds.insert(0, ("Riproduci il link copiato", "link", lambda: w.play(clip) if not clip.startswith("magnet:")
+            cmds.insert(0, ("Play the copied link", "link", lambda: w.play(clip) if not clip.startswith("magnet:")
                             else w.download(clip)))
-            cmds.insert(1, ("Scarica il link copiato", "download", lambda: w.download(clip)))
+            cmds.insert(1, ("Download the copied link", "download", lambda: w.download(clip)))
         if p.player and not p.get_prop("idle-active", True):
-            cmds += [("Modalità cinema", "film", lambda: w.set_cinema(not p.is_cinema)),
-                     ("Schermo intero", "fullscreen", lambda: w.set_fullscreen(not p.is_fullscreen)),
-                     ("Statistiche video", "info", p.toggle_stats),
-                     ("Suono: Cinema in cuffia", "audio", lambda: p.set_audio_profile("headphones")),
-                     ("Suono: Dialoghi chiari", "audio", lambda: p.set_audio_profile("dialogue")),
-                     ("Suono: Volume notte", "audio", lambda: p.set_audio_profile("night")),
-                     ("Suono: Originale", "audio", lambda: p.set_audio_profile("normal"))]
+            cmds += [("Cinema mode", "film", lambda: w.set_cinema(not p.is_cinema)),
+                     ("Full screen", "fullscreen", lambda: w.set_fullscreen(not p.is_fullscreen)),
+                     ("Video statistics", "info", p.toggle_stats),
+                     ("Sound: Cinema in headphones", "audio", lambda: p.set_audio_profile("headphones")),
+                     ("Sound: Clear dialogue", "audio", lambda: p.set_audio_profile("dialogue")),
+                     ("Sound: Night volume", "audio", lambda: p.set_audio_profile("night")),
+                     ("Sound: Original", "audio", lambda: p.set_audio_profile("normal"))]
         for key, name, ic in (("home", "Home", "nova"), ("player", "Player", "player"), ("stream", "Stream", "globe"),
                               ("downloads", "Download", "download"), ("torrent", "Torrent", "magnet"),
-                              ("library", "Libreria", "library"), ("settings", "Impostazioni", "settings")):
-            cmds.append((f"Vai a {name}", ic, lambda k=key: w.go(k)))
+                              ("library", "Library", "library"), ("settings", "Settings", "settings")):
+            cmds.append((f"Go to {name}", ic, lambda k=key: w.go(k)))
         return cmds
 
     def fill(self, *_):

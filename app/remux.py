@@ -45,7 +45,7 @@ def build_args(src: str, dst: str, target: str, info: dict) -> tuple[list[str], 
                 if c not in MP4_AUDIO_OK:
                     ch = int(s.get("channels") or 2)
                     codecs += [f"-c:a:{a_idx}", "eac3", f"-b:a:{a_idx}", "640k" if ch > 2 else "256k"]
-                    notes.append(f"Audio {c.upper()} convertito in E-AC3 (non supportato in MP4).")
+                    notes.append(f"{c.upper()} audio converted to E-AC3 (not supported in MP4).")
                 a_idx += 1
             elif t == "subtitle":
                 if c in TEXT_SUBS:
@@ -53,7 +53,7 @@ def build_args(src: str, dst: str, target: str, info: dict) -> tuple[list[str], 
                     codecs += [f"-c:s:{s_idx}", "mov_text"]
                     s_idx += 1
                 else:
-                    notes.append(f"Sottotitoli {c.upper()} (immagine) esclusi: MP4 non li supporta.")
+                    notes.append(f"{c.upper()} subtitles (image) left out: MP4 doesn't support them.")
         args += maps + ["-c", "copy"] + codecs + ["-movflags", "+faststart"]
         hevc = any(s.get("codec_name") == "hevc" for s in streams if s.get("codec_type") == "video")
         if hevc:
@@ -87,7 +87,7 @@ class RemuxJob(QObject):
         try:
             info = probe(self.src)
         except Exception as e:
-            self.finished.emit(False, f"Impossibile leggere il file: {e}", [])
+            self.finished.emit(False, f"Can't read the file: {e}", [])
             return
         self.duration = float(info.get("format", {}).get("duration") or 0)
         args, self.notes = build_args(self.src, self.dst, self.target, info)
@@ -111,7 +111,7 @@ class RemuxJob(QObject):
                 Path(self.dst).unlink(missing_ok=True)
             except Exception:
                 pass
-            msg = self._err.decode(errors="ignore").strip().splitlines()[-1:] or ["errore sconosciuto"]
+            msg = self._err.decode(errors="ignore").strip().splitlines()[-1:] or ["unknown error"]
             self.finished.emit(False, f"ffmpeg: {msg[0]}", [])
 
 
@@ -191,27 +191,27 @@ def phone_plans(src: str, dst: str, info: dict, langs: list[str], nvenc: bool) -
     cpu_sdr = (f"scale={tw}:{th}:flags=bicubic," if (tw, th) != (sw, sh) else "") + "format=yuv420p"
     plans: list[tuple[str, list[str]]] = []
     if not v:
-        return [("Solo audio", inp + ["-i", src] + maps + tail)]
+        return [("Audio only", inp + ["-i", src] + maps + tail)]
     if nvenc:
         if hdr:
             pl = (f"libplacebo=w={tw}:h={th}:tonemapping=bt.2390:colorspace=bt709:color_primaries=bt709:"
                   "color_trc=bt709:range=tv:format=yuv420p")
-            plans.append(("GPU NVIDIA (HDR → colori normali con la GPU)",
+            plans.append(("NVIDIA GPU (HDR → normal colours on the GPU)",
                           inp + ["-init_hw_device", "vulkan=vk", "-filter_hw_device", "vk", "-hwaccel", "cuda",
                                  "-i", src] + maps + ["-vf", pl] + nv + tail))
-            plans.append(("GPU NVIDIA (HDR convertito dal processore)",
+            plans.append(("NVIDIA GPU (HDR converted on the CPU)",
                           inp + ["-hwaccel", "cuda", "-i", src] + maps + ["-vf", cpu_hdr] + nv + tail))
         else:
-            plans.append(("GPU NVIDIA (tutto sulla scheda video)",
+            plans.append(("NVIDIA GPU (everything on the graphics card)",
                           inp + ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda", "-i", src] + maps +
                           ["-vf", f"scale_cuda={tw}:{th}:interp_algo=lanczos:format=yuv420p"] + nv + tail))
             plans.append(("GPU NVIDIA", inp + ["-hwaccel", "cuda", "-i", src] + maps + ["-vf", cpu_sdr] + nv + tail))
-        plans.append(("GPU NVIDIA (decodifica dal processore)",
+        plans.append(("NVIDIA GPU (decoding on the CPU)",
                       inp + ["-i", src] + maps + ["-vf", cpu_hdr if hdr else cpu_sdr] + nv + tail))
     vf = cpu_hdr if hdr else cpu_sdr
-    plans.append(("Processore (decodifica hardware)",
+    plans.append(("CPU (hardware decoding)",
                   inp + ["-hwaccel", "auto", "-i", src] + maps + ["-vf", vf] + x264 + tail))
-    plans.append(("Processore", inp + ["-i", src] + maps + ["-vf", vf] + x264 + tail))
+    plans.append(("CPU", inp + ["-i", src] + maps + ["-vf", vf] + x264 + tail))
     return plans
 
 
@@ -228,10 +228,10 @@ class PhoneJob(RemuxJob):
         self.src = src
         safe = re.sub(r'[<>:"/\\|?*]+', " ", title).strip() or "video"
         Path(out_dir).mkdir(parents=True, exist_ok=True)
-        dst = Path(out_dir) / f"{safe} (telefono).mp4"
+        dst = Path(out_dir) / f"{safe} (phone).mp4"
         n = 2
         while dst.exists():
-            dst = Path(out_dir) / f"{safe} (telefono {n}).mp4"
+            dst = Path(out_dir) / f"{safe} (phone {n}).mp4"
             n += 1
         self.dst = str(dst)
         self.langs = langs
@@ -258,7 +258,7 @@ class PhoneJob(RemuxJob):
 
     def _go(self, info, nv):
         if not info.get("streams"):
-            self.finished.emit(False, "Impossibile leggere il video (link scaduto o file non valido).", [])
+            self.finished.emit(False, "Can't read the video (expired link or invalid file).", [])
             return
         self.duration = float(info.get("format", {}).get("duration") or 0)
         self.plans = phone_plans(self.src, self.dst, info, self.langs, nv)
@@ -266,7 +266,7 @@ class PhoneJob(RemuxJob):
 
     def _next_plan(self):
         label, args = self.plans.pop(0)
-        self.notes = [f"Conversione: {label}."]
+        self.notes = [f"Conversion: {label}."]
         self._got_progress = False
         self._err = b""
         self._t0 = time.time()

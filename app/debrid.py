@@ -25,9 +25,9 @@ class RealDebrid(QObject):
     failed = Signal(str)
     not_cached = Signal()            # non pronto entro il tempo massimo: non era in cache
 
-    STATUS = {"magnet_conversion": "Conversione magnet…", "waiting_files_selection": "Selezione file…",
-              "queued": "In coda sul cloud…", "downloading": "Download sul cloud", "compressing": "Compressione…",
-              "uploading": "Caricamento…", "downloaded": "Pronto"}
+    STATUS = {"magnet_conversion": "Converting magnet…", "waiting_files_selection": "Selecting files…",
+              "queued": "Queued on the cloud…", "downloading": "Downloading on the cloud", "compressing": "Compressing…",
+              "uploading": "Uploading…", "downloaded": "Ready"}
 
     def __init__(self, token: str, instant_timeout: float | None = None):
         super().__init__()
@@ -56,9 +56,9 @@ class RealDebrid(QObject):
             except Exception:
                 err = str(e)
             if e.code == 401:
-                err = "Token Real-Debrid non valido o scaduto (Impostazioni › Torrent)."
+                err = "Real-Debrid token invalid or expired (Settings › Torrent)."
             elif e.code == 403:
-                err = "Account Real-Debrid senza premium o bloccato."
+                err = "Real-Debrid account without premium or blocked."
             raise RDError(err)
 
     def user(self) -> dict:
@@ -89,7 +89,7 @@ class RealDebrid(QObject):
                 if st == "downloaded":
                     break
                 if st in ("error", "magnet_error", "virus", "dead"):
-                    raise RDError(f"Real-Debrid: stato '{st}'")
+                    raise RDError(f"Real-Debrid: status '{st}'")
                 pr = info.get("progress")
                 txt = self.STATUS.get(st, st)
                 if st == "downloading":
@@ -102,19 +102,19 @@ class RealDebrid(QObject):
                     self.instant_timeout = None
                     self.not_cached.emit()
                 if time.time() - t0 > 6 * 3600:
-                    raise RDError("Tempo scaduto in attesa di Real-Debrid.")
+                    raise RDError("Timed out waiting for Real-Debrid.")
                 time.sleep(1 if time.time() - t0 < 60 else 3)
-            self.progress.emit("Generazione link diretti…", 1.0)
+            self.progress.emit("Generating direct links…", 1.0)
             out = []
             for link in info.get("links", []):
                 u = self._req("POST", "/unrestrict/link", {"link": link})
                 out.append({"filename": u.get("filename"), "filesize": u.get("filesize"),
                             "download": u.get("download")})
             if not out:
-                raise RDError("Nessun link restituito.")
+                raise RDError("No links returned.")
             out.sort(key=lambda f: (Path(f["filename"] or "").suffix.lower() not in VIDEO_EXT, -(f["filesize"] or 0)))
             self.ready.emit(out)
         except RDError as e:
             self.failed.emit(str(e))
         except Exception as e:
-            self.failed.emit(f"Errore di rete: {e}")
+            self.failed.emit(f"Network error: {e}")

@@ -45,7 +45,7 @@ def free_port(pref: int) -> int:
 
 def category_dir(base: str, name: str) -> str:
     ext = Path(name).suffix.lower()
-    sub = "Video" if ext in VIDEO_EXT else "Audio" if ext in AUDIO_EXT else "Altro"
+    sub = "Video" if ext in VIDEO_EXT else "Audio" if ext in AUDIO_EXT else "Other"
     d = Path(base) / sub
     d.mkdir(parents=True, exist_ok=True)
     return str(d)
@@ -99,7 +99,7 @@ class Aria2:
             self.proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                          creationflags=NOWIN)
         except FileNotFoundError:
-            self.error = "aria2c non trovato: esegui setup.bat"
+            self.error = "aria2c not found: run setup.bat"
             return False
         for _ in range(50):
             time.sleep(0.1)
@@ -110,7 +110,7 @@ class Aria2:
             except Exception:
                 if self.proc.poll() is not None:
                     break
-        self.error = "aria2c non risponde"
+        self.error = "aria2c is not responding"
         return False
 
     def alive(self):
@@ -164,7 +164,7 @@ class YtdlJob(threading.Thread):
         try:
             import yt_dlp
         except ImportError:
-            it.update(status="error", error="yt-dlp non installato")
+            it.update(status="error", error="yt-dlp is not installed")
             return
         h = it.get("height") or 9999
         cont = it.get("container", "mkv")
@@ -190,7 +190,7 @@ class YtdlJob(threading.Thread):
 
         def pp_hook(d):
             if d.get("status") == "started" and d.get("postprocessor") in ("Merger", "FFmpegVideoRemuxer"):
-                it.update(status="active", stage_text="Unione audio e video…")
+                it.update(status="active", stage_text="Merging audio and video…")
             if d.get("status") == "finished" and d.get("info_dict", {}).get("filepath"):
                 it["path"] = d["info_dict"]["filepath"]
 
@@ -264,7 +264,7 @@ class YtdlJob(threading.Thread):
                 elif line.startswith("NOVAFILE|"):
                     it["path"] = line.split("|", 1)[1]
                 elif "[Merger]" in line:
-                    it["stage_text"] = "Unione audio e video…"
+                    it["stage_text"] = "Merging audio and video…"
                 elif line.startswith("ERROR"):
                     last_err = line.replace("ERROR: ", "")
             p.wait()
@@ -276,7 +276,7 @@ class YtdlJob(threading.Thread):
                 it.update(status="complete", name=Path(it["path"]).name, speed=0, stage_text="")
                 self.mgr.finished.emit(it["id"])
             else:
-                it.update(status="error", error=(last_err or "yt-dlp non è riuscito")[:220], speed=0)
+                it.update(status="error", error=(last_err or "yt-dlp failed")[:220], speed=0)
         except Exception as e:
             it.update(status="error", error=str(e)[:220], speed=0)
         self.mgr.save()
@@ -339,30 +339,30 @@ class YtdlDialog(QDialog):
 
     def __init__(self, parent, info: dict):
         super().__init__(parent)
-        self.setWindowTitle("Scarica video")
+        self.setWindowTitle("Download video")
         self.setMinimumWidth(460)
         v = QVBoxLayout(self)
         v.setContentsMargins(24, 22, 24, 20)
         v.setSpacing(14)
-        v.addWidget(label("Video trovato", "faint"))
+        v.addWidget(label("Video found", "faint"))
         t = label(info.get("title", ""), "sectionTitle", wrap=True)
         v.addWidget(t)
         hs = info.get("heights") or []
-        opts = [("best", "Massima")]
+        opts = [("best", "Maximum")]
         for h, n in ((2160, "4K"), (1440, "1440p"), (1080, "1080p"), (720, "720p")):
             if any(x >= h for x in hs):
                 opts.append((str(h), n))
-        opts.append(("audio", "Solo audio"))
-        v.addWidget(label("Qualità", "muted"))
+        opts.append(("audio", "Audio only"))
+        v.addWidget(label("Quality", "muted"))
         self.q = Segmented(opts, "best")
         v.addWidget(self.q)
-        v.addWidget(label("Formato", "muted"))
+        v.addWidget(label("Format", "muted"))
         self.c = Segmented([("mkv", "MKV"), ("mp4", "MP4")], settings.get("downloads", "ytdlp_container"))
         v.addWidget(self.c)
         r = QHBoxLayout()
         r.addStretch()
-        r.addWidget(button("Annulla", None, None, self.reject))
-        r.addWidget(button("Scarica", "primary", "download", self.accept))
+        r.addWidget(button("Cancel", None, None, self.reject))
+        r.addWidget(button("Download", "primary", "download", self.accept))
         v.addSpacing(6)
         v.addLayout(r)
 
@@ -540,7 +540,7 @@ class DownloadManager(QObject):
                 if gentle:
                     self._gentle.add("a:" + gid)
             except Exception as e:
-                self.error.emit("Impossibile aggiungere il download", str(e))
+                self.error.emit("Couldn't add the download", str(e))
         threading.Thread(target=go, daemon=True).start()
 
     def add_ytdl(self, url, info, opts):
@@ -571,11 +571,11 @@ class DownloadManager(QObject):
         def go():
             info = probe(new_url)
             if not info.get("ok"):
-                self.renewed.emit(iid, False, "Anche questo link non funziona." if info.get("expired")
-                                  else "Link non raggiungibile.")
+                self.renewed.emit(iid, False, "This link doesn't work either." if info.get("expired")
+                                  else "Link unreachable.")
                 return
             if it.get("total") and info.get("size") and info["size"] != it["total"]:
-                self.renewed.emit(iid, False, "È un file diverso (dimensione diversa): copia il link dello stesso file.")
+                self.renewed.emit(iid, False, "It's a different file (different size): copy the link of the same file.")
                 return
             gid = iid[2:]
             try:
@@ -736,10 +736,10 @@ class DownloadManager(QObject):
 
 # ------------------------------------------------------------------ UI
 STATUS = {
-    "active": ("In download", "accent"), "waiting": ("In coda", "text2"), "paused": ("In pausa", "warning"),
-    "complete": ("Completato", "success"), "error": ("Errore", "danger"), "removed": ("Rimosso", "text3"),
-    "seeding": ("In seed", "info"), "checking": ("Verifica", "text2"), "metadata": ("Metadati…", "text2"),
-    "choose": ("Scegli i file", "warning"),
+    "active": ("Downloading", "accent"), "waiting": ("Queued", "text2"), "paused": ("Paused", "warning"),
+    "complete": ("Completed", "success"), "error": ("Error", "danger"), "removed": ("Removed", "text3"),
+    "seeding": ("In seed", "info"), "checking": ("Checking", "text2"), "metadata": ("Metadata…", "text2"),
+    "choose": ("Choose files", "warning"),
 }
 
 
@@ -790,12 +790,12 @@ class DownloadCard(Card):
         h.addWidget(self.spark, 0, Qt.AlignVCenter)
         self.btns = QHBoxLayout()
         self.btns.setSpacing(2)
-        self.b_pause = IconButton("pause", "Pausa", 34, 18)
-        self.b_play = IconButton("play", "Riproduci", 34, 18)
-        self.b_folder = IconButton("folder", "Apri cartella", 34, 18)
-        self.b_conv = IconButton("convert", "Converti MKV/MP4", 34, 18)
-        self.b_x = IconButton("x", "Rimuovi", 34, 18)
-        self.b_renew = IconButton("link", "Link scaduto: incolla un link nuovo dello stesso file", 34, 18,
+        self.b_pause = IconButton("pause", "Pause", 34, 18)
+        self.b_play = IconButton("play", "Play", 34, 18)
+        self.b_folder = IconButton("folder", "Open folder", 34, 18)
+        self.b_conv = IconButton("convert", "Convert MKV/MP4", 34, 18)
+        self.b_x = IconButton("x", "Remove", 34, 18)
+        self.b_renew = IconButton("link", "Link expired: paste a new link to the same file", 34, 18,
                                   color=theme.warning)
         self.b_renew.hide()
         for b in (self.b_renew, self.b_pause, self.b_play, self.b_conv, self.b_folder, self.b_x):
@@ -852,7 +852,7 @@ class DownloadCard(Card):
         if st == "active":
             el = max(1e-3, time.time() - it.get("start_t", time.time()))
             avg = max(0, (done - it.get("start_done", 0))) / el
-            parts = [f"↓ {human_speed(spd)}", f"media {human_speed(avg)}", f"{human_eta(it.get('eta'))} rimanenti"]
+            parts = [f"↓ {human_speed(spd)}", f"media {human_speed(avg)}", f"{human_eta(it.get('eta'))} left"]
             if it.get("connections"):
                 parts.append(f"{it['connections']} conn.")
             if self.torrent:
@@ -862,21 +862,20 @@ class DownloadCard(Card):
         elif st == "seeding":
             self.l_info.setText(f"↑ {human_speed(it.get('up', 0))}  ·  ratio {it.get('ratio', 0):.2f}  ·  {it.get('peers', 0)} peer")
         if it.get("expired") and not self.torrent:
-            self.pill.set("Link scaduto", theme.warning)
+            self.pill.set("Link expired", theme.warning)
             self._status = None
             self.l_info.setStyleSheet(f"color:{theme.warning};")
-            self.l_info.setText("Copia dal sito un link nuovo dello stesso file e premi 🔗: riprende da qui, "
-                                "senza perdere quello già scaricato")
+            self.l_info.setText("Copy a new link to the same file from the website and press 🔗: it resumes from here without losing what's already downloaded")
         elif st == "active" and it.get("expires") and not self.torrent:
             left = it["expires"] - time.time()
             late = it.get("eta") and it["eta"] > left
-            self.l_info.setText(self.l_info.text() + f"  ·  link scade tra {human_eta(left)}")
+            self.l_info.setText(self.l_info.text() + f"  ·  link expires in {human_eta(left)}")
             self.l_info.setStyleSheet(f"color:{theme.warning};" if late else "")
         elif st == "choose":
             self.l_info.setStyleSheet(f"color:{theme.warning};")
-            self.l_info.setText("Nessun file selezionato: premi ▶ per sceglierli")
+            self.l_info.setText("No file selected: press ▶ to choose")
         elif st == "error":
-            self.l_info.setText((it.get("error") or "Errore")[:120])
+            self.l_info.setText((it.get("error") or "Error")[:120])
             self.l_info.setStyleSheet(f"color:{theme.danger};")
         elif st not in ("active", "seeding"):
             self.l_info.setStyleSheet("")
@@ -884,13 +883,13 @@ class DownloadCard(Card):
         self.b_renew.setVisible(bool(it.get("expired")) and not self.torrent)
         active = st in ("active", "waiting", "seeding", "metadata", "checking")
         self.b_pause.set_icon("pause" if active else ("retry" if st == "error" else "play"))
-        self.b_pause.setToolTip("Pausa" if active else "Riprova" if st == "error" else "Riprendi")
+        self.b_pause.setToolTip("Pause" if active else "Retry" if st == "error" else "Resume")
         self.b_pause.setVisible((st != "complete" or self.torrent) and st != "choose")
         path = it.get("path") or ""
         is_media = Path(nm).suffix.lower() in VIDEO_EXT | AUDIO_EXT
         if self.torrent:
             self.b_play.setVisible(bool(it.get("streamable")) or st == "choose")
-            self.b_play.setToolTip("Scegli i file" if st == "choose" else "Guarda (anche mentre scarica)")
+            self.b_play.setToolTip("Choose files" if st == "choose" else "Watch (even while downloading)")
         else:
             self.b_play.setVisible(is_media and st == "complete")
         self.b_conv.setVisible(st in ("complete", "seeding") and Path(nm).suffix.lower() in (".mkv", ".mp4", ".webm", ".mov", ".ts", ".m2ts", ".avi"))
@@ -910,17 +909,17 @@ class DownloadsPage(QWidget):
         m = theme.s(28)
         root.setContentsMargins(m, m - 4, m, m)
         root.setSpacing(theme.s(16))
-        hdr = PageHeader("Download", "Incolla un link: file diretti con multi-connessione, pagine video con yt-dlp.")
+        hdr = PageHeader("Downloads", "Paste a link: direct files with multiple connections, video pages through yt-dlp.")
         root.addWidget(hdr)
         row = QHBoxLayout()
         row.setSpacing(10)
         self.input = QLineEdit()
         self.input.setObjectName("bigInput")
-        self.input.setPlaceholderText("Incolla un link da scaricare…")
+        self.input.setPlaceholderText("Paste a link to download…")
         self.input.returnPressed.connect(self._add)
-        paste = IconButton("clipboard", "Incolla", 46, 20)
+        paste = IconButton("clipboard", "Paste", 46, 20)
         paste.clicked.connect(lambda: (self.input.setText(QApplication.clipboard().text().strip()), self._add()))
-        add = button("Scarica", "primary", "download", self._add)
+        add = button("Download", "primary", "download", self._add)
         row.addWidget(self.input, 1)
         row.addWidget(paste)
         row.addWidget(add)
@@ -933,15 +932,15 @@ class DownloadsPage(QWidget):
         root.addWidget(self.hero)
 
         filt = QHBoxLayout()
-        self.filter = Segmented([("all", "Tutti"), ("active", "Attivi"), ("complete", "Completati"),
-                                 ("error", "Errori")], "all")
+        self.filter = Segmented([("all", "All"), ("active", "Active"), ("complete", "Completed"),
+                                 ("error", "Errors")], "all")
         self.filter.changed.connect(lambda _: self._apply_filter())
         filt.addWidget(self.filter)
         filt.addStretch()
         self.summary = label("", "muted")
         filt.addSpacing(10)
-        filt.addWidget(button("Pulisci completati", "ghost", "trash", mgr.clear_completed))
-        filt.addWidget(button("Cartella", "ghost", "folder",
+        filt.addWidget(button("Clear completed", "ghost", "trash", mgr.clear_completed))
+        filt.addWidget(button("Folder", "ghost", "folder",
                               lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(settings.get("downloads", "dir")))))
         root.addLayout(filt)
 
@@ -951,8 +950,8 @@ class DownloadsPage(QWidget):
         self.list = QVBoxLayout(host)
         self.list.setContentsMargins(0, 0, 4, 0)
         self.list.setSpacing(theme.s(10))
-        self.empty = EmptyState("download", "Nessun download",
-                                "Incolla un link qui sopra. Se copi un link, NOVA te lo propone in automatico.")
+        self.empty = EmptyState("download", "No downloads",
+                                "Paste a link above. When you copy a link, NOVA suggests it automatically.")
         self.list.addWidget(self.empty)
         self.list.addStretch()
         self.scroll.setWidget(host)
@@ -995,7 +994,7 @@ class DownloadsPage(QWidget):
         u = self.input.text().strip()
         if not u.startswith(("http://", "https://", "ftp://")):
             if u:
-                self.toast.emit("Link non valido", "Usa un link http(s) o ftp. Per i torrent usa la sezione Torrent.", "warn")
+                self.toast.emit("Invalid link", "Use an http(s) or ftp link. For torrents use the Torrent section.", "warn")
             return
         self.input.clear()
         self.probe_bar.show()
@@ -1029,10 +1028,10 @@ class DownloadsPage(QWidget):
     def _finished(self, iid):
         it = self.mgr.items.get(iid, {})
         name = it.get("name", "File")
-        acts = [("Apri cartella", lambda: self.open_folder(iid))]
+        acts = [("Open folder", lambda: self.open_folder(iid))]
         if Path(name).suffix.lower() in VIDEO_EXT | AUDIO_EXT:
-            acts.insert(0, ("Riproduci", lambda: self.play_item(iid)))
-        self.window().notify("Download completato", name, acts)
+            acts.insert(0, ("Play", lambda: self.play_item(iid)))
+        self.window().notify("Download complete", name, acts)
 
     def refresh(self):
         for iid, c in list(self.cards.items()):
@@ -1040,7 +1039,7 @@ class DownloadsPage(QWidget):
             if it and c.isVisible():
                 c.refresh(it)
         n, spd, frac = self.mgr.stats()
-        self.hero.update_speed(spd, f"{n} download attivi" if n else "Nessun download attivo")
+        self.hero.update_speed(spd, f"{n} active downloads" if n else "No active downloads")
 
     def _apply_filter(self):
         f = self.filter.value
@@ -1060,17 +1059,17 @@ class DownloadsPage(QWidget):
         clip = QApplication.clipboard().text().strip()
         url = clip if clip.startswith(("http://", "https://")) else ""
         if not url:
-            url, ok = QInputDialog.getText(self, "Link nuovo", "Incolla il link nuovo dello stesso file:")
+            url, ok = QInputDialog.getText(self, "New link", "Paste the new link to the same file:")
             if not ok or not url.strip().startswith(("http://", "https://")):
                 return
-        self.toast.emit("Controllo il link nuovo…", "", "info")
+        self.toast.emit("Checking the new link…", "", "info")
         self.mgr.renew(iid, url.strip())
 
     def _renewed(self, iid, ok, msg):
         if ok:
-            self.toast.emit("Link rinnovato", "Il download riprende da dove era arrivato.", "ok")
+            self.toast.emit("Link renewed", "The download resumes from where it stopped.", "ok")
         else:
-            self.toast.emit("Link non valido", msg, "err")
+            self.toast.emit("Invalid link", msg, "err")
 
     def remove_item(self, iid):
         it = self.mgr.items.get(iid, {})
@@ -1084,7 +1083,7 @@ class DownloadsPage(QWidget):
         if p and os.path.exists(p):
             self.play.emit(p)
         else:
-            self.toast.emit("File non trovato", "Il file è stato spostato o eliminato.", "warn")
+            self.toast.emit("File not found", "The file was moved or deleted.", "warn")
 
     def open_folder(self, iid):
         p = self.mgr.items.get(iid, {}).get("path") or settings.get("downloads", "dir")
@@ -1099,19 +1098,19 @@ class DownloadsPage(QWidget):
         it = self.mgr.items.get(iid, {})
         m = QMenu(self)
         if it.get("url"):
-            m.addAction("Copia link", lambda: QApplication.clipboard().setText(it["url"]))
+            m.addAction("Copy link", lambda: QApplication.clipboard().setText(it["url"]))
         if it.get("src") == "aria2" and it.get("status") in ("waiting", "paused", "active"):
-            m.addAction("Priorità alta", lambda: self.mgr.to_top(iid))
-            m.addAction("Limita velocità…", lambda: self._limit(iid))
+            m.addAction("High priority", lambda: self.mgr.to_top(iid))
+            m.addAction("Limit speed…", lambda: self._limit(iid))
         if it.get("status") == "complete":
-            m.addAction("Rimuovi dall'elenco", lambda: self.mgr.remove(iid))
-            m.addAction("Elimina file", lambda: self.mgr.remove(iid, delete_file=True))
+            m.addAction("Remove from list", lambda: self.mgr.remove(iid))
+            m.addAction("Delete file", lambda: self.mgr.remove(iid, delete_file=True))
         else:
-            m.addAction("Annulla ed elimina", lambda: self.mgr.remove(iid, delete_file=True))
+            m.addAction("Cancel and delete", lambda: self.mgr.remove(iid, delete_file=True))
         m.exec(gpos)
 
     def _limit(self, iid):
-        kb, ok = QInputDialog.getInt(self, "Limite velocità", "KB/s (0 = illimitato):", 0, 0, 10_000_000, 100)
+        kb, ok = QInputDialog.getInt(self, "Speed limit", "KB/s (0 = unlimited):", 0, 0, 10_000_000, 100)
         if ok:
             self.mgr.limit(iid, kb)
 
@@ -1136,9 +1135,9 @@ def convert_menu(page, path, anchor):
     ext = Path(path).suffix.lower()
     for tgt in ("mp4", "mkv"):
         if f".{tgt}" != ext:
-            m.addAction(f"Converti in {tgt.upper()} (senza perdita)", lambda t=tgt: start_remux(page, path, t))
+            m.addAction(f"Convert to {tgt.upper()} (lossless)", lambda t=tgt: start_remux(page, path, t))
     m.addSeparator()
-    m.addAction("Versione per telefono (max 1,4 GB)", lambda: start_phone(page, path))
+    m.addAction("Phone version (max 1.4 GB)", lambda: start_phone(page, path))
     m.exec(anchor.mapToGlobal(anchor.rect().bottomLeft()))
 
 
@@ -1148,14 +1147,14 @@ def start_phone(page, src, title=None):
     from .names import parse, display
     win = page.window()
     title = title or display(parse(Path(src).name if os.path.exists(src) else src)) or "video"
-    out = str(Path(settings.get("downloads", "dir")) / "Per telefono")
+    out = str(Path(settings.get("downloads", "dir")) / "For phone")
     langs = [x.strip() for x in settings.get("player", "audio_lang").split(",") if x.strip()]
     job = PhoneJob(src, out, title, langs)
     _jobs.append(job)
-    t = win.toasts.show("Versione per telefono…", title + " · MP4 720p, max 1,4 GB",
-                        [("Annulla", job.cancel)], "info", timeout=0)
+    t = win.toasts.show("Phone version…", title + " · MP4 720p, max 1,4 GB",
+                        [("Cancel", job.cancel)], "info", timeout=0)
     bar = AnimatedProgress(height=4)
-    info = label("Preparo…", "faint")
+    info = label("Preparing…", "faint")
     lay = t.layout().itemAt(1).layout()
     lay.insertWidget(2, bar)
     lay.insertWidget(3, info)
@@ -1174,8 +1173,7 @@ def start_phone(page, src, title=None):
                 rate = (v - t0[0][1]) / el if el > 0 else 0
                 eta = (1 - v) / rate if rate > 0 else 0
                 spd = rate * job.duration if job.duration else 0
-                info.setText(f"{v * 100:.0f}%  ·  {spd:.1f}x  ·  ancora {human_eta(eta)}  ·  "
-                             f"{(job.notes or [''])[0].replace('Conversione: ', '').rstrip('.')}")
+                info.setText(f"{v * 100:.0f}%  ·  {spd:.1f}x  ·  {human_eta(eta)} left  ·  {(job.notes or [''])[0].replace('Conversion: ', '').rstrip('.')}")
         except RuntimeError:
             pass
     job.progress.connect(prog)
@@ -1187,10 +1185,10 @@ def start_phone(page, src, title=None):
             pass
         if ok:
             size = Path(res).stat().st_size / 1e9 if Path(res).exists() else 0
-            win.notify("Pronto per il telefono", f"{Path(res).name} · {size:.2f} GB",
-                       [("Apri cartella", lambda: reveal(res)), ("Riproduci", lambda: win.play(res))])
+            win.notify("Ready for the phone", f"{Path(res).name} · {size:.2f} GB",
+                       [("Open folder", lambda: reveal(res)), ("Play", lambda: win.play(res))])
         else:
-            win.toasts.show("Conversione non riuscita", res, None, "err")
+            win.toasts.show("Conversion failed", res, None, "err")
         _jobs.remove(job)
     job.finished.connect(done)
     job.start()
@@ -1201,7 +1199,7 @@ def start_remux(page, path, target):
     win = page.window()
     job = RemuxJob(path, target)
     _jobs.append(job)
-    t = win.toasts.show(f"Conversione in {target.upper()}…", Path(path).name, None, "info", timeout=0)
+    t = win.toasts.show(f"Converting to {target.upper()}…", Path(path).name, None, "info", timeout=0)
     bar = AnimatedProgress(height=4)
     t.layout().itemAt(1).layout().addWidget(bar)
     t.adjustSize()
@@ -1214,10 +1212,10 @@ def start_remux(page, path, target):
         except RuntimeError:
             pass
         if ok:
-            win.notify("Conversione completata", Path(res).name + ("\n" + "\n".join(notes) if notes else ""),
-                       [("Riproduci", lambda: win.play(res)), ("Apri cartella", lambda: reveal(res))])
+            win.notify("Conversion complete", Path(res).name + ("\n" + "\n".join(notes) if notes else ""),
+                       [("Play", lambda: win.play(res)), ("Open folder", lambda: reveal(res))])
         else:
-            win.toasts.show("Conversione non riuscita", res, None, "err")
+            win.toasts.show("Conversion failed", res, None, "err")
         _jobs.remove(job)
     job.finished.connect(done)
     job.start()

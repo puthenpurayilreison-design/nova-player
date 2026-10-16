@@ -40,9 +40,9 @@ def subtitle_of(it) -> str:
     parts = []
     if it.get("_eps", 0) > 1:
         ep = f"S{it.get('season') or 1:02d}E{it['episode']:02d}" if it.get("episode") is not None else ""
-        return f"Serie  ·  {it['_eps']} episodi" + (f"  ·  ultimo {ep}" if ep else "")
+        return f"Series  ·  {it['_eps']} episodes" + (f"  ·  latest {ep}" if ep else "")
     if it.get("mkind") == "tv" and it.get("tmdb_title"):
-        parts.append("Serie")
+        parts.append("Series")
     if it.get("langs"):
         parts.append(" · ".join(it["langs"][:2]))
     if it.get("res"):
@@ -50,7 +50,7 @@ def subtitle_of(it) -> str:
     d, p = it.get("dur") or 0, it.get("pos") or 0
     if d:
         left = max(0, d - p)
-        parts.append("Visto" if left < 60 else f"{human_time(left)} rimanenti")
+        parts.append("Watched" if left < 60 else f"{human_time(left)} left")
     return "  ·  ".join(parts)
 
 
@@ -145,7 +145,7 @@ class Poster(QWidget):
         # badge
         y = 8
         if self.expired:
-            self._badge(p, 8, y, "LINK SCADUTO", theme.danger)
+            self._badge(p, 8, y, "LINK EXPIRED", theme.danger)
         if self.it.get("res") == "2160p":
             self._badge(p, r.width() - 8, y, "4K", QColor(0, 0, 0, 170), right=True)
         if self._h > 0:
@@ -202,15 +202,13 @@ class PosterTile(QWidget):
 class AddLinksDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
-        self.setWindowTitle("Aggiungi link alla libreria")
+        self.setWindowTitle("Add links to the library")
         self.setMinimumSize(560, 380)
         v = QVBoxLayout(self)
         v.setContentsMargins(24, 22, 24, 20)
         v.setSpacing(12)
-        v.addWidget(label("Aggiungi link", "sectionTitle"))
-        v.addWidget(label("Incolla uno o più link, uno per riga. NOVA legge il nome di ogni file, lo pulisce in "
-                          "«Nome (anno)» e cerca il poster. Se un film c'è già, il link nuovo sostituisce quello "
-                          "scaduto e la ripresa resta uguale.", "muted", wrap=True))
+        v.addWidget(label("Add links", "sectionTitle"))
+        v.addWidget(label("Paste one or more links, one per line. NOVA reads each file name, cleans it into «Name (year)» and looks for the poster. If a movie is already there, the new link replaces the expired one and the resume point stays the same.", "muted", wrap=True))
         self.text = QPlainTextEdit()
         self.text.setPlaceholderText("https://…\nhttps://…")
         clip = QApplication.clipboard().text().strip()
@@ -219,8 +217,8 @@ class AddLinksDialog(QDialog):
         v.addWidget(self.text, 1)
         r = QHBoxLayout()
         r.addStretch()
-        r.addWidget(button("Annulla", None, None, self.reject))
-        r.addWidget(button("Aggiungi", "primary", "plus", self.accept))
+        r.addWidget(button("Cancel", None, None, self.reject))
+        r.addWidget(button("Add", "primary", "plus", self.accept))
         v.addLayout(r)
 
 
@@ -232,18 +230,18 @@ class FixTitleDialog(QDialog):
         self.it = it
         self.choice = None
         self.manual = None
-        self.setWindowTitle("Correggi titolo")
+        self.setWindowTitle("Fix title")
         self.setMinimumSize(560, 460)
         v = QVBoxLayout(self)
         v.setContentsMargins(24, 22, 24, 20)
         v.setSpacing(10)
-        v.addWidget(label("Correggi titolo", "sectionTitle"))
+        v.addWidget(label("Fix title", "sectionTitle"))
         v.addWidget(label(it.get("parsed") or it.get("title") or "", "faint", wrap=True))
         r = QHBoxLayout()
         self.q = QLineEdit(it.get("ptitle") or item_title(it))
         self.q.returnPressed.connect(self.search)
         r.addWidget(self.q, 1)
-        r.addWidget(button("Cerca", "primary", "search", self.search))
+        r.addWidget(button("Search", "primary", "search", self.search))
         v.addLayout(r)
         self.list = QListWidget()
         self.list.itemDoubleClicked.connect(lambda _: self._pick())
@@ -251,16 +249,16 @@ class FixTitleDialog(QDialog):
         self.status = label("", "faint")
         v.addWidget(self.status)
         b = QHBoxLayout()
-        b.addWidget(button("Usa il testo come nome", None, "edit", self._manual))
+        b.addWidget(button("Use the text as the name", None, "edit", self._manual))
         b.addStretch()
-        b.addWidget(button("Annulla", None, None, self.reject))
-        b.addWidget(button("Usa questo", "primary", "check", self._pick))
+        b.addWidget(button("Cancel", None, None, self.reject))
+        b.addWidget(button("Use this", "primary", "check", self._pick))
         v.addLayout(b)
         self.results = []
         if settings.get("library", "tmdb_key"):
             QTimer.singleShot(50, self.search)
         else:
-            self.status.setText("Senza chiave TMDB puoi solo scrivere il nome a mano.")
+            self.status.setText("Without a TMDB key you can only type the name yourself.")
 
     def search(self):
         from .tmdb import search
@@ -268,7 +266,7 @@ class FixTitleDialog(QDialog):
         info = names.parse(q)
         title, year = info.get("title") or q, info.get("year")
         kind = self.it.get("mkind") or "movie"
-        self.status.setText("Cerco…")
+        self.status.setText("Searching…")
         self.list.clear()
 
         def work():
@@ -278,7 +276,7 @@ class FixTitleDialog(QDialog):
                     res = search(title, year, "tv")
                 QTimer.singleShot(0, self, lambda: self._show(res))
             except Exception as e:
-                msg = f"Errore: {e}"
+                msg = f"Error: {e}"
                 QTimer.singleShot(0, self, lambda: self.status.setText(msg))
         threading.Thread(target=work, daemon=True).start()
 
@@ -288,12 +286,12 @@ class FixTitleDialog(QDialog):
         for r in res:
             it = QListWidgetItem(f"{r['title']} ({r['year'] or '?'})" +
                                  (f"  —  {r['original']}" if r['original'] and r['original'] != r['title'] else "") +
-                                 ("   · serie" if r["kind"] == "tv" else ""))
+                                 ("   · series" if r["kind"] == "tv" else ""))
             it.setToolTip(r.get("overview", "")[:400])
             self.list.addItem(it)
         if res:
             self.list.setCurrentRow(0)
-        self.status.setText(f"{len(res)} risultati" if res else "Nessun risultato: prova senza anno o in inglese.")
+        self.status.setText(f"{len(res)} results" if res else "No results: try without the year or in English.")
 
     def _pick(self):
         i = self.list.currentRow()
@@ -318,13 +316,12 @@ class TmdbBanner(Card):
         h.addWidget(ic)
         v = QVBoxLayout()
         v.setSpacing(2)
-        v.addWidget(label("Poster ufficiali e titoli puliti", "sectionTitle"))
-        v.addWidget(label("Serve una chiave TMDB gratuita (2 minuti): account su themoviedb.org › Impostazioni › API. "
-                          "Incollala qui e NOVA scarica da solo poster e «Nome (anno)».", "muted", wrap=True))
+        v.addWidget(label("Official posters and clean titles", "sectionTitle"))
+        v.addWidget(label("You need a free TMDB key (2 minutes): account on themoviedb.org › Settings › API. Paste it here and NOVA downloads posters and «Name (year)» by itself.", "muted", wrap=True))
         h.addLayout(v, 1)
-        h.addWidget(button("Apri TMDB", None, "globe",
+        h.addWidget(button("Open TMDB", None, "globe",
                            lambda: QDesktopServices.openUrl(QUrl("https://www.themoviedb.org/settings/api"))))
-        h.addWidget(button("Incolla chiave", "primary", "plus", page.ask_key))
+        h.addWidget(button("Paste key", "primary", "plus", page.ask_key))
 
 
 class LibraryPage(QWidget):
@@ -343,19 +340,19 @@ class LibraryPage(QWidget):
         head = QHBoxLayout()
         hv = QVBoxLayout()
         hv.setSpacing(2)
-        hv.addWidget(label("Libreria", "pageTitle"))
-        self.sub = label("I tuoi film e serie con poster, pronti a ripartire da dove eri.", "pageSub")
+        hv.addWidget(label("Library", "pageTitle"))
+        self.sub = label("Your movies and series with posters, ready to pick up where you left off.", "pageSub")
         hv.addWidget(self.sub)
         head.addLayout(hv, 1)
-        head.addWidget(button("Aggiungi link", "primary", "plus", self.add_links), 0, Qt.AlignBottom)
+        head.addWidget(button("Add links", "primary", "plus", self.add_links), 0, Qt.AlignBottom)
         root.addLayout(head)
         self.banner = TmdbBanner(self)
         root.addWidget(self.banner)
         r = QHBoxLayout()
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Cerca un titolo…")
+        self.search.setPlaceholderText("Search a title…")
         self.search.textChanged.connect(lambda: self.refresh(force=True))
-        self.filter = Segmented([("all", "Tutti"), ("movie", "Film"), ("tv", "Serie"), ("link", "Link"),
+        self.filter = Segmented([("all", "All"), ("movie", "Movies"), ("tv", "Series"), ("link", "Link"),
                                  ("file", "File")], "all")
         self.filter.changed.connect(lambda _: self.refresh(force=True))
         r.addWidget(self.search, 1)
@@ -426,7 +423,7 @@ class LibraryPage(QWidget):
     def refresh(self, *_, anim=False, force=False):
         from .catalog import month_summary
         ms = month_summary()
-        self.sub.setText(ms or "I tuoi film e serie con poster, pronti a ripartire da dove eri.")
+        self.sub.setText(ms or "Your movies and series with posters, ready to pick up where you left off.")
         self.banner.setVisible(not settings.get("library", "tmdb_key") and bool(history.items))
         if not self.isVisible() and not force:
             return
@@ -444,10 +441,9 @@ class LibraryPage(QWidget):
                 w.deleteLater()
         if not items:
             q = self.search.text().strip()
-            self.grid.addWidget(EmptyState("library", "Nessun risultato" if q else "Libreria vuota",
-                                           "I film che guardi compaiono qui con il poster e il punto in cui ti sei "
-                                           "fermato. Puoi anche aggiungere tanti link insieme.",
-                                           None if q else button("Aggiungi link", "primary", "plus",
+            self.grid.addWidget(EmptyState("library", "No results" if q else "Empty library",
+                                           "The movies you watch show up here with their poster and the point where you stopped. You can also add many links at once.",
+                                           None if q else button("Add links", "primary", "plus",
                                                                  self.add_links)), 0, 0, 1, cols)
             return
         for n, it in enumerate(items):
@@ -469,34 +465,34 @@ class LibraryPage(QWidget):
     def add_links(self):
         d = AddLinksDialog(self)
         if d.exec():
-            self.toast.emit("Controllo i link…", "Leggo nome e dimensione di ogni file.", "info")
+            self.toast.emit("Checking the links…", "Reading the name and size of each file.", "info")
             self.catalog.add_links(d.text.toPlainText())
 
     def _links_added(self, added, renewed):
         if not added and not renewed:
-            self.toast.emit("Nessun link nuovo", "I link erano già in libreria o non validi.", "warn")
+            self.toast.emit("No new links", "The links were already in the library or invalid.", "warn")
             return
         txt = []
         if added:
-            txt.append(f"{added} aggiunti")
+            txt.append(f"{added} added")
         if renewed:
-            txt.append(f"{renewed} rinnovati (stesso film, link nuovo)")
-        self.toast.emit("Libreria aggiornata", " · ".join(txt), "ok")
+            txt.append(f"{renewed} renewed (same movie, new link)")
+        self.toast.emit("Library updated", " · ".join(txt), "ok")
 
     def ask_key(self):
         from .tmdb import check_key
         clip = QApplication.clipboard().text().strip()
-        key, ok = QInputDialog.getText(self, "Chiave TMDB", "Incolla la API Key (o il Read Access Token):",
+        key, ok = QInputDialog.getText(self, "TMDB key", "Paste the API Key (or the Read Access Token):",
                                        text=clip if 20 <= len(clip) <= 400 and " " not in clip else "")
         if not ok or not key.strip():
             return
         good, msg = check_key(key)
         if good:
             settings.set("library", "tmdb_key", key.strip())
-            self.toast.emit("TMDB collegato", msg, "ok")
+            self.toast.emit("TMDB connected", msg, "ok")
             self.refresh(force=True)
         else:
-            self.toast.emit("Chiave TMDB", msg, "err")
+            self.toast.emit("TMDB key", msg, "err")
 
     def renew(self, it):
         src = it.get("source")
@@ -504,9 +500,9 @@ class LibraryPage(QWidget):
             QDesktopServices.openUrl(QUrl(src))
         clip = QApplication.clipboard().text().strip()
         url, ok = QInputDialog.getText(
-            self, "Link scaduto",
-            ("Ho aperto la pagina del sito: copia il link nuovo e incollalo qui.\n" if src else
-             "Incolla il link nuovo dello stesso film (la ripresa resta uguale):\n") + item_title(it),
+            self, "Link expired",
+            ("I opened the website: copy the new link and paste it here.\n" if src else
+             "Paste the new link to the same movie (the resume point stays the same):\n") + item_title(it),
             text=clip if clip.startswith(("http://", "https://")) and clip != it["url"] else "")
         if ok and url.strip().startswith(("http://", "https://")):
             new = url.strip()
@@ -515,8 +511,7 @@ class LibraryPage(QWidget):
             self.play_item.emit(history.get(new))
 
     def set_source(self, it):
-        url, ok = QInputDialog.getText(self, "Pagina del sito", "Link della pagina da cui prendi il film "
-                                       "(quando il link scade, NOVA la riapre per te):", text=it.get("source", ""))
+        url, ok = QInputDialog.getText(self, "Website page", "Link of the page where you get the movie (when the link expires, NOVA reopens it for you):", text=it.get("source", ""))
         if ok:
             history.update_meta(it["url"], {"source": url.strip()})
 
@@ -538,7 +533,7 @@ class LibraryPage(QWidget):
         if dest == p:
             return
         if dest.exists():
-            self.toast.emit("Rinomina", "Esiste già un file con questo nome.", "warn")
+            self.toast.emit("Rename", "A file with this name already exists.", "warn")
             return
         try:
             p.rename(dest)
@@ -547,35 +542,35 @@ class LibraryPage(QWidget):
                 if s.exists():
                     s.rename(dest.with_suffix(ext))
         except OSError as e:
-            self.toast.emit("Rinomina", f"Non riesco (file in uso?): {e}", "err")
+            self.toast.emit("Rename", f"Can't do it (file in use?): {e}", "err")
             return
         history.rekey(str(p), str(dest))
         history.update_meta(str(dest), {"fname": dest.name})
-        self.toast.emit("File rinominato", dest.name, "ok")
+        self.toast.emit("File renamed", dest.name, "ok")
 
     def menu(self, it, gpos):
         m = QMenu(self)
-        m.addAction("Riproduci", lambda: self.open_item(it))
-        m.addAction("Dettagli", lambda: self.show_details(it))
-        m.addAction("Togli dalla mia lista" if it.get("fav") else "Aggiungi alla mia lista",
+        m.addAction("Play", lambda: self.open_item(it))
+        m.addAction("Details", lambda: self.show_details(it))
+        m.addAction("Remove from my list" if it.get("fav") else "Add to my list",
                     lambda: history.update_meta(it["url"], {"fav": not it.get("fav"), "fav_t": time.time()}))
         if it.get("dur") and (it.get("pos") or 0) > 10:
-            m.addAction("Ricomincia dall'inizio", lambda: self.play_item.emit({**it, "restart": True}))
+            m.addAction("Start from the beginning", lambda: self.play_item.emit({**it, "restart": True}))
         m.addSeparator()
-        m.addAction("Correggi titolo / poster…", lambda: self.fix_title(it))
+        m.addAction("Fix title / poster…", lambda: self.fix_title(it))
         if it["kind"] == "link":
-            m.addAction("Rinnova link…", lambda: self.renew(it))
-            m.addAction("Imposta pagina del sito…", lambda: self.set_source(it))
+            m.addAction("Renew link…", lambda: self.renew(it))
+            m.addAction("Set website page…", lambda: self.set_source(it))
             if it.get("source"):
-                m.addAction("Apri pagina del sito", lambda: QDesktopServices.openUrl(QUrl(it["source"])))
-            m.addAction("Copia link", lambda: QApplication.clipboard().setText(it["url"]))
+                m.addAction("Open website page", lambda: QDesktopServices.openUrl(QUrl(it["source"])))
+            m.addAction("Copy link", lambda: QApplication.clipboard().setText(it["url"]))
         elif os.path.exists(it["url"]):
-            m.addAction("Mostra nella cartella", lambda: reveal(it["url"]))
+            m.addAction("Show in folder", lambda: reveal(it["url"]))
             if os.path.isfile(it["url"]) and it.get("clean"):
-                m.addAction(f"Rinomina file come «{item_title(it)}»", lambda: self.rename_file(it))
+                m.addAction(f"Rename file as «{item_title(it)}»", lambda: self.rename_file(it))
         if (it["kind"] == "link" and not is_expired(it)) or os.path.isfile(it["url"]):
             from .downloads import start_phone
-            m.addAction("Versione per telefono (max 1,4 GB)", lambda: start_phone(self, it["url"], item_title(it)))
+            m.addAction("Phone version (max 1.4 GB)", lambda: start_phone(self, it["url"], item_title(it)))
         m.addSeparator()
-        m.addAction("Rimuovi dalla libreria", lambda: history.remove(it["url"]))
+        m.addAction("Remove from library", lambda: history.remove(it["url"]))
         m.exec(gpos)

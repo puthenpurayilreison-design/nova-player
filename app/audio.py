@@ -7,14 +7,14 @@ che il downmix normale butta via.
 from __future__ import annotations
 
 PROFILES = [
-    ("auto", "Automatico", "Sceglie da solo in base all'uscita (cuffie, monitor, casse)"),
-    ("normal", "Originale", "Suono così com'è, nessun filtro"),
-    ("headphones", "Cinema in cuffia 3D", "Suono intorno a te: ogni canale del 5.1/7.1 arriva da dove sta nella sala (davanti, lati, dietro)"),
-    ("indian", "Cinema indiano", "Per i mix indiani: voci sempre chiare sopra musica e BGM forti, bassi pieni"),
-    ("dialogue", "Dialoghi chiari", "Voci più avanti, effetti e musica più bassi"),
-    ("night", "Volume notte", "Esplosioni più basse, voci più alte: niente su e giù col volume"),
-    ("subwoofer", "Casse + subwoofer", "Tiene i bassi del film (LFE) e protegge le casse dalla distorsione"),
-    ("monitor", "Casse del monitor", "Taglia i bassi che le casse piccole non riescono a fare, voci più chiare"),
+    ("auto", "Automatic", "Picks by itself based on the output (headphones, monitor, speakers)"),
+    ("normal", "Original", "Sound as it is, no filters"),
+    ("headphones", "Cinema in headphones 3D", "Sound all around you: every 5.1/7.1 channel comes from where it sits in the theatre (front, sides, back)"),
+    ("indian", "Indian cinema", "For Indian mixes: voices always clear above loud music and BGM, full bass"),
+    ("dialogue", "Clear dialogue", "Voices forward, effects and music lower"),
+    ("night", "Night volume", "Lower explosions, louder voices: no more riding the volume"),
+    ("subwoofer", "Speakers + subwoofer", "Keeps the film's bass (LFE) and protects the speakers from distortion"),
+    ("monitor", "Monitor speakers", "Cuts the bass small speakers can't play, clearer voices"),
 ]
 PROFILE_NAMES = {k: n for k, n, _ in PROFILES}
 

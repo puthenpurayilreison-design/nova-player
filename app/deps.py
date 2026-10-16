@@ -62,7 +62,7 @@ def extract_7z(data: bytes, dest: str):
             z.extractall(dest)
         return
     except Exception as e:
-        print(f"  py7zr non basta ({e.__class__.__name__}), provo un altro metodo…")
+        print(f"  py7zr is not enough ({e.__class__.__name__}), trying another method…")
     arc = Path(dest) / "_pkg.7z"
     arc.write_bytes(data)
     try:
@@ -109,10 +109,10 @@ def get_mpv():
                         and a["name"].endswith(".7z")]
         pick = pick or [a for a in assets if a["name"].startswith("mpv-dev-x86_64") and a["name"].endswith(".7z")]
         if not pick:
-            print(f"  {repo}: nessun pacchetto mpv-dev trovato ({len(names)} file)")
+            print(f"  {repo}: no mpv-dev package found ({len(names)} files)")
             continue
         a = pick[0]
-        print(f"  libmpv da {repo}: {a['name']}")
+        print(f"  libmpv from {repo}: {a['name']}")
         data = fetch(a["browser_download_url"], "libmpv")
         with tempfile.TemporaryDirectory() as td:
             extract_7z(data, td)
@@ -120,7 +120,7 @@ def get_mpv():
                 if dll.name.lower() in ("libmpv-2.dll", "mpv-2.dll"):
                     _write(BIN / "libmpv-2.dll", dll.read_bytes())
                     return True
-        print("  libmpv-2.dll non trovata nel pacchetto")
+        print("  libmpv-2.dll not found in the package")
     return False
 
 
@@ -170,9 +170,9 @@ def ensure(force=False, log=print) -> list[str]:
     failed = []
     for fname, fn in JOBS:
         if (BIN / fname).exists() and not force:
-            log(f"  ✓ {fname} già presente")
+            log(f"  ✓ {fname} already present")
             continue
-        log(f"Scarico {fname}…")
+        log(f"Downloading {fname}…")
         try:
             if not fn():
                 failed.append(fname)

@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>A fast, beautiful media player for Windows — player, streaming, downloads and torrents in one app.</b><br>
-  Free and open source · No ads · No tracking
+  Free and open source · No ads · No tracking · Beta
 </p>
 
 <p align="center">
@@ -65,8 +65,6 @@ No admin rights needed. Windows 10/11, 64-bit.
 
 > Windows SmartScreen may warn that the app is not recognized (the installer is not code-signed yet):
 > click **More info › Run anyway**.
-
-> The interface is currently in **Italian**. English is planned — help with translations is welcome!
 
 ### Posters, cast and trailers (optional)
 NOVA uses [TMDB](https://www.themoviedb.org/) for posters, plot, cast and trailers. Create a free API key

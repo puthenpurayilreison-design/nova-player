@@ -25,9 +25,9 @@ from .catalog import item_title, is_expired
 from .theme import theme
 from .widgets import label, button, ease
 
-LANG_NAMES = {"ml": "Malayalam", "ta": "Tamil", "te": "Telugu", "hi": "Hindi", "kn": "Kannada", "en": "Inglese",
-              "it": "Italiano", "ko": "Coreano", "ja": "Giapponese", "es": "Spagnolo", "fr": "Francese",
-              "de": "Tedesco", "zh": "Cinese", "bn": "Bengali", "mr": "Marathi", "pt": "Portoghese"}
+LANG_NAMES = {"ml": "Malayalam", "ta": "Tamil", "te": "Telugu", "hi": "Hindi", "kn": "Kannada", "en": "English",
+              "it": "Italian", "ko": "Korean", "ja": "Japanese", "es": "Spanish", "fr": "French",
+              "de": "German", "zh": "Chinese", "bn": "Bengali", "mr": "Marathi", "pt": "Portuguese"}
 
 # ---------------------------------------------------------------- immagini (cache)
 _IMG: dict = {}
@@ -126,7 +126,7 @@ def runtime_text(it: dict, d: dict | None) -> str:
     d = d or {}
     if it.get("mkind") == "tv" or d.get("kind") == "tv":
         n = d.get("seasons")
-        return f"{n} {'stagione' if n == 1 else 'stagioni'}" if n else "Serie"
+        return f"{n} {'season' if n == 1 else 'seasons'}" if n else "Series"
     m = d.get("runtime") or int((it.get("dur") or 0) // 60)
     if not m:
         return ""
@@ -372,11 +372,11 @@ class TitleCard(QWidget):
         bx = r.left() + 8
         badges = []
         if self.expired:
-            badges.append(("LINK SCADUTO", theme.danger, "white"))
+            badges.append(("LINK EXPIRED", theme.danger, "white"))
         if self.it.get("res") == "2160p":
             badges.append(("4K", "rgba(0,0,0,0.65)", "white"))
         if self.it.get("fav"):
-            badges.append(("IN LISTA", theme.accent, theme.on_accent))
+            badges.append(("IN MY LIST", theme.accent, theme.on_accent))
         for t, bg, fg in badges:
             tw = p.fontMetrics().horizontalAdvance(t) + 10
             p.setPen(Qt.NoPen)
@@ -610,8 +610,8 @@ class Spotlight(QWidget):
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(theme.s(10))
         v.addStretch()
-        kick = "CONTINUA A GUARDARE" if _unfinished(it) else ("LA TUA SERIE" if it.get("mkind") == "tv"
-                                                                else "IN EVIDENZA PER TE")
+        kick = "CONTINUE WATCHING" if _unfinished(it) else ("YOUR SERIES" if it.get("mkind") == "tv"
+                                                                else "FEATURED FOR YOU")
         k = label(kick)
         k.setStyleSheet(f"color:{theme.accent};font-weight:800;letter-spacing:3px;font-size:{theme.fs(8.5)}pt;")
         v.addWidget(k)
@@ -631,7 +631,7 @@ class Spotlight(QWidget):
             t.setMaximumWidth(theme.s(640))
             v.addWidget(t)
         if it.get("mkind") == "tv" and it.get("episode") is not None:
-            ep = label(f"Stagione {it.get('season') or 1} · Episodio {it['episode']}")
+            ep = label(f"Season {it.get('season') or 1} · Episode {it['episode']}")
             ep.setStyleSheet("color:rgba(255,255,255,0.9);font-weight:600;")
             v.addWidget(ep)
         v.addWidget(chips_widget(chips(it, d)))
@@ -652,20 +652,20 @@ class Spotlight(QWidget):
             bar.setFixedWidth(theme.s(220))
             row.addWidget(bar, 0, Qt.AlignVCenter)
             left = max(0, (it.get("dur") or 0) - (it.get("pos") or 0))
-            rl = label(f"{int(left // 3600)}h {int(left % 3600 // 60):02d}m rimanenti" if left >= 3600
-                       else f"{int(left // 60)} min rimanenti")
+            rl = label(f"{int(left // 3600)}h {int(left % 3600 // 60):02d}m left" if left >= 3600
+                       else f"{int(left // 60)} min left")
             rl.setStyleSheet("color:rgba(255,255,255,0.75);")
             row.addWidget(rl)
             row.addStretch()
             v.addLayout(row)
         btns = QHBoxLayout()
         btns.setSpacing(10)
-        b1 = button(f"Riprendi da {human_time(it.get('pos'))}" if _unfinished(it) else "Guarda", None, None,
+        b1 = button(f"Resume from {human_time(it.get('pos'))}" if _unfinished(it) else "Watch", None, None,
                     lambda: self.play.emit(it))
         b1.setIcon(icons.icon("play", "#0B0B0F", 18))
         b1.setStyleSheet(primary_big())
         btns.addWidget(b1)
-        b2 = button("Dettagli", None, None, lambda: self.open.emit(it))
+        b2 = button("Details", None, None, lambda: self.open.emit(it))
         b2.setIcon(icons.icon("info", "#FFFFFF", 18))
         b2.setStyleSheet(ghost_style())
         btns.addWidget(b2)
@@ -959,7 +959,7 @@ class DetailsView(QFrame):
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.lay.addWidget(self.scroll)
-        self.back = button("Indietro", None, None, self.close_anim)
+        self.back = button("Back", None, None, self.close_anim)
         self.back.setParent(self)
         self.back.setIcon(icons.icon("back", "#FFFFFF", 18))
         self.back.setStyleSheet("QPushButton{background:rgba(12,12,16,0.78);border:1px solid rgba(255,255,255,0.18);"
@@ -1127,13 +1127,13 @@ class DetailsView(QFrame):
         btns = QHBoxLayout()
         btns.setSpacing(10)
         unf = _unfinished(it)
-        b1 = button(f"Riprendi da {human_time(it.get('pos'))}" if unf else "Guarda", None, None,
+        b1 = button(f"Resume from {human_time(it.get('pos'))}" if unf else "Watch", None, None,
                     lambda: self.play.emit(it))
         b1.setIcon(icons.icon("play", "#0B0B0F", 18))
         b1.setStyleSheet(primary_big())
         btns.addWidget(b1)
         if unf:
-            b = button("Dall'inizio", None, None, lambda: self.play.emit({**it, "restart": True}))
+            b = button("From the start", None, None, lambda: self.play.emit({**it, "restart": True}))
             b.setIcon(icons.icon("retry", "#FFFFFF", 18))
             b.setStyleSheet(ghost_style())
             btns.addWidget(b)
@@ -1143,11 +1143,11 @@ class DetailsView(QFrame):
             b.setStyleSheet(ghost_style())
             btns.addWidget(b)
         fav = bool(it.get("fav"))
-        b = button("Nella mia lista" if fav else "La mia lista", None, None, self._toggle_fav)
+        b = button("In my list" if fav else "My list", None, None, self._toggle_fav)
         b.setIcon(icons.icon("bookmark_on" if fav else "bookmark", "#FFFFFF", 18))
         b.setStyleSheet(ghost_style())
         btns.addWidget(b)
-        b = button("Altro", None, None, None)
+        b = button("More", None, None, None)
         b.setIcon(icons.icon("menu", "#FFFFFF", 18))
         b.setStyleSheet(ghost_style())
         b.clicked.connect(lambda: self._more(b))
@@ -1161,8 +1161,7 @@ class DetailsView(QFrame):
             bar.setFixedWidth(theme.s(260))
             row.addWidget(bar, 0, Qt.AlignVCenter)
             left = max(0, (it.get("dur") or 0) - (it.get("pos") or 0))
-            rl = label(f"{human_time(it.get('pos'))} di {human_time(it.get('dur'))}  ·  "
-                       f"{int(left // 60)} min rimanenti")
+            rl = label(f"{human_time(it.get('pos'))} of {human_time(it.get('dur'))}  ·  {int(left // 60)} min left")
             rl.setStyleSheet("color:rgba(255,255,255,0.75);")
             row.addSpacing(10)
             row.addWidget(rl)
@@ -1180,8 +1179,8 @@ class DetailsView(QFrame):
         left = QVBoxLayout()
         left.setSpacing(theme.s(10))
         ov = d.get("overview") or it.get("overview") or ""
-        left.addWidget(_section("Trama"))
-        o = label(ov or "Trama non disponibile. Collega TMDB (Libreria) per trama, cast e trailer.", wrap=True)
+        left.addWidget(_section("Plot"))
+        o = label(ov or "Plot not available. Connect TMDB (Library) for plot, cast and trailer.", wrap=True)
         o.setStyleSheet(f"font-size:{theme.fs(10.5)}pt;line-height:150%;color:{theme.text2};")
         o.setMaximumWidth(theme.s(720))
         left.addWidget(o)
@@ -1189,30 +1188,30 @@ class DetailsView(QFrame):
         cols.addLayout(left, 3)
         facts = QVBoxLayout()
         facts.setSpacing(theme.s(6))
-        facts.addWidget(_section("Informazioni"))
+        facts.addWidget(_section("Info"))
         rows = []
         if d.get("director"):
-            rows.append(("Regia" if d.get("kind") != "tv" else "Ideata da", d["director"]))
+            rows.append(("Director" if d.get("kind") != "tv" else "Created by", d["director"]))
         if d.get("music"):
-            rows.append(("Musiche", d["music"]))
+            rows.append(("Music", d["music"]))
         if d.get("lang"):
-            rows.append(("Lingua originale", LANG_NAMES.get(d["lang"], d["lang"])))
+            rows.append(("Original language", LANG_NAMES.get(d["lang"], d["lang"])))
         if d.get("votes"):
-            rows.append(("Voto TMDB", f"{d['vote']:.1f} su 10 · {d['votes']:,} voti".replace(",", ".")))
+            rows.append(("TMDB rating", f"{d['vote']:.1f} out of 10 · {d['votes']:,} votes".replace(",", ".")))
         if d.get("kind") == "tv" and d.get("episodes"):
-            rows.append(("Episodi", f"{d['episodes']} in {d.get('seasons') or '?'} stagioni"))
+            rows.append(("Episodes", f"{d['episodes']} in {d.get('seasons') or '?'} seasons"))
         if d.get("status") and d.get("kind") == "tv":
-            rows.append(("Stato", {"Returning Series": "In corso", "Ended": "Conclusa", "Canceled": "Cancellata"}
+            rows.append(("Status", {"Returning Series": "Ongoing", "Ended": "Ended", "Canceled": "Cancelled"}
                          .get(d["status"], d["status"])))
-        src = {"link": "Link (streaming)", "torrent": "Torrent", "file": "File sul PC"}.get(it.get("kind"), "")
+        src = {"link": "Link (streaming)", "torrent": "Torrent", "file": "File on the PC"}.get(it.get("kind"), "")
         if src:
-            rows.append(("Fonte", src + (" · scaduto" if is_expired(it) else "")))
+            rows.append(("Source", src + (" · expired" if is_expired(it) else "")))
         if it.get("langs"):
-            rows.append(("Audio del file", ", ".join(it["langs"])))
+            rows.append(("File audio", ", ".join(it["langs"])))
         if it.get("res"):
-            rows.append(("Qualità del file", {"2160p": "4K"}.get(it["res"], it["res"])))
+            rows.append(("File quality", {"2160p": "4K"}.get(it["res"], it["res"])))
         if it.get("size"):
-            rows.append(("Dimensione", f"{it['size'] / 1e9:.2f} GB"))
+            rows.append(("Size", f"{it['size'] / 1e9:.2f} GB"))
         for k, val in rows:
             r = QHBoxLayout()
             kl = label(k, "faint")
@@ -1236,7 +1235,7 @@ class DetailsView(QFrame):
                 c.play.connect(self.play.emit)
                 c.open.connect(self.play.emit)
                 cards.append(c)
-            root.addWidget(Row("Episodi", cards, f"{len(eps)} nella tua libreria"))
+            root.addWidget(Row("Episodes", cards, f"{len(eps)} in your library"))
         # cast
         cast = d.get("cast") or []
         if cast:
@@ -1270,7 +1269,7 @@ class DetailsView(QFrame):
                 c.open.connect(lambda x: self.win.open_details(x))
                 c.play.connect(self.play.emit)
                 cards.append(c)
-            root.addWidget(Row("Simili nella tua libreria", cards))
+            root.addWidget(Row("Similar in your library", cards))
         root.addStretch()
         old = self.scroll.takeWidget()
         self.scroll.setWidget(host)
@@ -1286,19 +1285,19 @@ class DetailsView(QFrame):
         lib = self.win.page("library")
         m = QMenu(self)
         it = self.it
-        m.addAction("Correggi titolo / poster…", lambda: lib.fix_title(it))
+        m.addAction("Fix title / poster…", lambda: lib.fix_title(it))
         if it.get("kind") == "link":
-            m.addAction("Rinnova link…", lambda: lib.renew(it))
+            m.addAction("Renew link…", lambda: lib.renew(it))
             from PySide6.QtWidgets import QApplication
-            m.addAction("Copia link", lambda: QApplication.clipboard().setText(it["url"]))
+            m.addAction("Copy link", lambda: QApplication.clipboard().setText(it["url"]))
         elif os.path.exists(it["url"]):
             from .downloads import reveal
-            m.addAction("Mostra nella cartella", lambda: reveal(it["url"]))
+            m.addAction("Show in folder", lambda: reveal(it["url"]))
         if (it.get("kind") == "link" and not is_expired(it)) or os.path.isfile(it["url"]):
             from .downloads import start_phone
-            m.addAction("Versione per telefono (max 1,4 GB)", lambda: start_phone(lib, it["url"], item_title(it)))
+            m.addAction("Phone version (max 1.4 GB)", lambda: start_phone(lib, it["url"], item_title(it)))
         m.addSeparator()
-        m.addAction("Rimuovi dalla libreria", lambda: (history.remove(it["url"]), self.close_anim()))
+        m.addAction("Remove from library", lambda: (history.remove(it["url"]), self.close_anim()))
         m.exec(anchor.mapToGlobal(anchor.rect().bottomLeft()))
 
 
@@ -1314,7 +1313,7 @@ def _ep_sub(e):
         parts.append(f"S{e.get('season') or 1:02d} E{e['episode']:02d}")
     d, p = e.get("dur") or 0, e.get("pos") or 0
     if d:
-        parts.append("Visto" if d - p < 60 else (f"{int((d - p) // 60)} min rimanenti" if p > 10 else
+        parts.append("Watched" if d - p < 60 else (f"{int((d - p) // 60)} min left" if p > 10 else
                                                 f"{int(d // 60)} min"))
     return "  ·  ".join(parts)
 

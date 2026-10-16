@@ -27,25 +27,25 @@ def fake_verdict(files: list[tuple[str, int]]) -> str | None:
         name = Path(p).name.lower()
         ext = Path(p).suffix.lower()
         if re.search(r"\.(mkv|mp4|avi|mov|wmv|m4v)\.(exe|scr|bat|cmd|lnk|msi|js|vbs)$", name):
-            return f"«{Path(p).name}» finge di essere un video ma è un programma."
+            return f"«{Path(p).name}» pretends to be a video but it's a program."
         if ext in DANGER_EXT and ext not in (".iso", ".img"):
-            return f"Contiene un programma ({Path(p).name}). Un film non ha bisogno di file {ext}: quasi sempre è un virus."
+            return f"It contains a program ({Path(p).name}). A movie doesn't need {ext} files: it's almost always a virus."
         if ext == ".lnk":
-            return "Contiene un collegamento (.lnk): trucco tipico dei torrent falsi."
+            return "It contains a shortcut (.lnk): a typical fake-torrent trick."
     if not vids:
         arch = [p for p, _ in files if Path(p).suffix.lower() in ARCHIVE_EXT]
         if arch:
-            return "Niente video, solo archivi (.zip/.rar): spesso chiedono una password su un sito = truffa."
+            return "No video, only archives (.zip/.rar): they often ask for a password on a website = scam."
         if any(Path(p).suffix.lower() in (".iso", ".img") for p, _ in files):
             return None   # immagini disco: possono essere legittime (Blu-ray), nessun allarme
         return None
     big = max(s for _, s in vids)
     if big < 80 * 1024 * 1024 and total > 50 * 1024 * 1024:
-        return "Il video è minuscolo rispetto al resto dei file: probabilmente non è il film."
+        return "The video is tiny compared to the other files: it's probably not the movie."
     for p, _ in files:
         if re.search(r"(?i)(password|codec[ _-]?pack|player[ _-]?install|read[ _-]?me[ _-]?first|"
                      r"download[ _-]?codec)", Path(p).name):
-            return f"«{Path(p).name}» chiede codec o password: tipico dei falsi."
+            return f"«{Path(p).name}» asks for codecs or a password: typical of fakes."
     return None
 
 
@@ -71,16 +71,16 @@ def defender_scan(path: str, timeout=600) -> tuple[str, str]:
     """('clean'|'threat'|'unavailable', messaggio). Scansiona file o cartella con Windows Defender."""
     exe = _mpcmdrun()
     if not exe:
-        return "unavailable", "Windows Defender non trovato."
+        return "unavailable", "Windows Defender not found."
     try:
         r = subprocess.run([exe, "-Scan", "-ScanType", "3", "-File", path, "-DisableRemediation"],
                            capture_output=True, text=True, timeout=timeout, creationflags=NOWIN)
     except Exception as e:
-        return "unavailable", f"Scansione non riuscita: {e}"
+        return "unavailable", f"Scan failed: {e}"
     out = (r.stdout or "") + (r.stderr or "")
     if r.returncode == 2 or "Threat" in out and "no threats" not in out.lower():
         m = re.search(r"Threat\s*:\s*(.+)", out)
-        return "threat", (m.group(1).strip() if m else "minaccia trovata")
+        return "threat", (m.group(1).strip() if m else "threat found")
     if r.returncode == 0:
-        return "clean", "Nessuna minaccia."
-    return "unavailable", out.strip()[-200:] or f"codice {r.returncode}"
+        return "clean", "No threats."
+    return "unavailable", out.strip()[-200:] or f"code {r.returncode}"

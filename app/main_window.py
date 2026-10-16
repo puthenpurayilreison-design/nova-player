@@ -24,8 +24,8 @@ from .home import HomePage
 from .settings_page import SettingsPage
 
 NAV = [NavItem("home", "nova", "Home"), NavItem("player", "player", "Player"), NavItem("stream", "link", "Stream"),
-       NavItem("downloads", "download", "Download"), NavItem("torrent", "magnet", "Torrent"),
-       NavItem("library", "library", "Libreria"), NavItem("settings", "settings", "Impostazioni")]
+       NavItem("downloads", "download", "Downloads"), NavItem("torrent", "magnet", "Torrent"),
+       NavItem("library", "library", "Library"), NavItem("settings", "settings", "Settings")]
 
 
 class MiniBar(QFrame):
@@ -74,7 +74,7 @@ class MiniBar(QFrame):
             parts.append(f"{n1} download")
         if n2:
             parts.append(f"{n2} torrent")
-        self.text.setText(" · ".join(parts) + " in corso")
+        self.text.setText(" · ".join(parts) + " in progress")
         self.speed.setText(f"↓ {human_speed(s1 + s2)}")
         self.bar.set_value(f1 if n1 else 0)
         self.bar.set_indeterminate(not n1)
@@ -222,7 +222,7 @@ class Intro(QWidget):
             col = QColor(theme.text2)
             col.setAlphaF(sub * vis)
             p.setPen(col)
-            p.drawText(QRectF(0, base + 22, W, 30), Qt.AlignHCenter | Qt.AlignTop, "IL TUO CINEMA")
+            p.drawText(QRectF(0, base + 22, W, 30), Qt.AlignHCenter | Qt.AlignTop, "YOUR CINEMA")
 
 
 class MainWindow(QMainWindow):
@@ -419,13 +419,13 @@ class MainWindow(QMainWindow):
         """Pulsante Aggiorna / F5: ricarica la scheda aperta."""
         key = self.sidebar.current
         p = self.pages.get(key)
-        msg = "Aggiornato"
+        msg = "Refreshed"
         try:
             if key == "player":
                 if not self.player.reload():
-                    msg = "Niente da ricaricare"
+                    msg = "Nothing to reload"
                 else:
-                    msg = "Video ricaricato dallo stesso punto"
+                    msg = "Video reloaded from the same point"
             elif key == "home" and p:
                 p.rebuild(anim=True)
             elif key == "stream" and p:
@@ -438,12 +438,12 @@ class MainWindow(QMainWindow):
                         c.refresh(it)
                 p.refresh()
                 if n:
-                    msg = f"Riprovo {n} download non riusciti"
+                    msg = f"Retrying {n} failed downloads"
             elif key == "torrent" and p:
                 n = self.tm.reannounce_all()
                 p.refresh()
                 if n:
-                    msg = f"Cerco nuovi peer per {n} torrent"
+                    msg = f"Looking for new peers for {n} torrents"
             elif key == "library" and p:
                 for it in history.items:
                     it.pop("tmdb_fail", None)
@@ -452,7 +452,7 @@ class MainWindow(QMainWindow):
             elif key == "settings" and p:
                 p.build()
         except Exception as e:
-            msg = f"Aggiornamento non riuscito: {e}"
+            msg = f"Refresh failed: {e}"
         self.toast(msg, "", "info")
 
     # ---------- azioni globali ----------
@@ -481,13 +481,13 @@ class MainWindow(QMainWindow):
                 if not target:
                     target = key if os.path.isfile(key) else None
             if not target:
-                self.toast("Non disponibile", "Il torrent è stato rimosso e il file non c'è più.", "warn")
+                self.toast("Not available", "The torrent was removed and the file is gone.", "warn")
                 return
             self.go("player")
             self.player.play(target, title=it.get("title"), kind="torrent", key=key, start=start,
                              hist_extra={"tid": it.get("tid"), "idx": it.get("idx")})
         elif it.get("kind") != "link" and not os.path.exists(key):
-            self.toast("File non trovato", "È stato spostato o eliminato.", "warn")
+            self.toast("File not found", "It was moved or deleted.", "warn")
             return
         else:
             self.go("player")
@@ -618,14 +618,14 @@ class MainWindow(QMainWindow):
         if not miss:
             self._update_ytdlp()
             return
-        self.toast("Preparo i componenti", "Scarico " + ", ".join(miss) + " (una volta sola)…", "info")
+        self.toast("Preparing components", "Downloading " + ", ".join(miss) + " (only once)…", "info")
         import threading
 
         def work():
             failed = deps.ensure(log=lambda *_: None)
             QTimer.singleShot(0, self, lambda: self.toast(
-                "Componenti pronti" if not failed else "Componenti non scaricati",
-                "" if not failed else "Controlla la connessione: " + ", ".join(failed), "ok" if not failed else "err"))
+                "Components ready" if not failed else "Components not downloaded",
+                "" if not failed else "Check your connection: " + ", ".join(failed), "ok" if not failed else "err"))
         threading.Thread(target=work, daemon=True).start()
 
     def _update_ytdlp(self):
@@ -662,8 +662,8 @@ class MainWindow(QMainWindow):
 
     # ---------- sicurezza ----------
     def _suspicious(self, tid, why):
-        self.toasts.show("Torrent sospetto", why + " Ti consiglio di eliminarlo.",
-                         [("Elimina", lambda: self.tm.remove(tid, delete_files=True)), ("Tienilo", lambda: None)],
+        self.toasts.show("Suspicious torrent", why + " I recommend deleting it.",
+                         [("Delete", lambda: self.tm.remove(tid, delete_files=True)), ("Keep it", lambda: None)],
                          "err", timeout=0)
 
     def _scan_download(self, iid):
@@ -682,9 +682,9 @@ class MainWindow(QMainWindow):
 
     def _scan_result(self, name, res, msg):
         if res == "threat":
-            self.toasts.show("Virus trovato", f"{name}: {msg}. Non aprirlo: eliminalo.", None, "err", timeout=0)
+            self.toasts.show("Virus found", f"{name}: {msg}. Don't open it: delete it.", None, "err", timeout=0)
         elif res == "clean":
-            self.toast("Controllato con Windows Defender", f"{name}: nessuna minaccia.", "ok")
+            self.toast("Checked with Windows Defender", f"{name}: no threats.", "ok")
 
     # ---------- serie: episodio successivo ----------
     def _episode_ended(self, key):
@@ -706,27 +706,26 @@ class MainWindow(QMainWindow):
                 self.play_item(it)
             else:
                 self.play(target)
-        t = self.toasts.show("Prossimo episodio", title + " · parte tra 10 secondi",
-                             [("Guarda ora", go), ("No", lambda: state.update(cancel=True))], "info", 10000)
+        t = self.toasts.show("Next episode", title + " · starts in 10 seconds",
+                             [("Watch now", go), ("No", lambda: state.update(cancel=True))], "info", 10000)
         QTimer.singleShot(10000, go)
 
     # ---------- link scaduti durante lo streaming ----------
     def _link_expired(self, sid):
         self._awaiting_renew = True
         self.player.set_prop("pause", True)
-        self.toasts.show("Link scaduto",
-                         "Il film è fermo sul punto giusto. Copia dal sito un link nuovo dello stesso film: "
-                         "NOVA lo usa da solo appena lo copi.",
-                         [("Usa link copiato", self._renew_from_clipboard), ("Annulla", lambda: None)],
+        self.toasts.show("Link expired",
+                         "The movie is paused at the right point. Copy a new link to the same movie from the website: NOVA uses it as soon as you copy it.",
+                         [("Use copied link", self._renew_from_clipboard), ("Cancel", lambda: None)],
                          "warn", timeout=0)
 
     def _renew_from_clipboard(self):
         url = QApplication.clipboard().text().strip()
         if not url.startswith(("http://", "https://")):
-            self.toast("Nessun link copiato", "Copia prima il link nuovo dal sito.", "warn")
+            self.toast("No link copied", "Copy the new link from the website first.", "warn")
             QTimer.singleShot(300, lambda: self._link_expired(self.player.turbo_sid))
             return
-        self.toast("Controllo il link nuovo…", "", "info")
+        self.toast("Checking the new link…", "", "info")
         self.player.renew_link(url)
 
     def _link_renewed(self, sid, ok, msg):
@@ -734,10 +733,10 @@ class MainWindow(QMainWindow):
             self._awaiting_renew = False
             for t in list(self.toasts.toasts):
                 t.close_anim()
-            self.toast("Link rinnovato", "Si riparte dallo stesso punto.", "ok")
+            self.toast("Link renewed", "It resumes from the same point.", "ok")
             self.player.set_prop("pause", False)
         else:
-            self.toast("Link non valido", msg, "err")
+            self.toast("Invalid link", msg, "err")
             QTimer.singleShot(400, lambda: self._link_expired(sid))
 
     def _badges(self):
@@ -761,8 +760,8 @@ class MainWindow(QMainWindow):
 
     def _open_firewall(self):
         ok = winutil.open_firewall(int(settings.get("torrent", "port")))
-        self.toast("Firewall", "Conferma la richiesta di Windows: NOVA aprirà la porta torrent." if ok
-                   else "Disponibile solo su Windows.", "info")
+        self.toast("Firewall", "Confirm the Windows prompt: NOVA will open the torrent port." if ok
+                   else "Only available on Windows.", "info")
 
     def _appearance_changed(self):
         for t in list(self.toasts.toasts):
@@ -814,7 +813,7 @@ class MainWindow(QMainWindow):
             fname = unquote(Path(urlparse(t).path).name).lower()
             for iid, it in list(self.dlm.items.items()):
                 if it.get("expired") and fname and fname == (it.get("name") or "").lower():
-                    self.toast("Link nuovo riconosciuto", it["name"] + " · riprendo il download", "info")
+                    self.toast("New link recognised", it["name"] + " · resuming the download", "info")
                     self.dlm.renew(iid, t)
                     return
         if getattr(self, "_awaiting_renew", False) and t.startswith(("http://", "https://")):
@@ -826,12 +825,12 @@ class MainWindow(QMainWindow):
         if t.startswith("magnet:?"):
             m = re.search(r"dn=([^&]+)", t)
             from urllib.parse import unquote_plus
-            name = unquote_plus(m.group(1)) if m else "Link magnet"
-            self.toasts.show("Magnet copiato", name[:80],
-                             [("Aggiungi", lambda: self.download(t)), ("Ignora", lambda: None)], "info", 8000)
+            name = unquote_plus(m.group(1)) if m else "Magnet link"
+            self.toasts.show("Magnet copied", name[:80],
+                             [("Add", lambda: self.download(t)), ("Ignore", lambda: None)], "info", 8000)
         elif looks_like_url(t) and len(t) < 2000:
-            self.toasts.show("Link copiato", t[:80],
-                             [("Riproduci", lambda: self.play(t)), ("Scarica", lambda: self.download(t))],
+            self.toasts.show("Link copied", t[:80],
+                             [("Play", lambda: self.play(t)), ("Download", lambda: self.download(t))],
                              "info", 8000)
 
     # ---------- drag & drop ----------
@@ -865,10 +864,10 @@ class MainWindow(QMainWindow):
     def _setup_tray(self):
         self.tray = QSystemTrayIcon(icons.app_icon(), self)
         m = QMenu()
-        m.addAction("Mostra NOVA", self.show_normal)
+        m.addAction("Show NOVA", self.show_normal)
         m.addAction("Download", lambda: (self.show_normal(), self.go("downloads")))
         m.addSeparator()
-        m.addAction("Esci", self.quit)
+        m.addAction("Quit", self.quit)
         self.tray.setContextMenu(m)
         self.tray.activated.connect(lambda r: self.show_normal() if r in (QSystemTrayIcon.Trigger, QSystemTrayIcon.DoubleClick) else None)
         self.tray.messageClicked.connect(self.show_normal)
@@ -894,7 +893,7 @@ class MainWindow(QMainWindow):
             e.ignore()
             self.player.set_prop("pause", True)
             self.hide()
-            self.tray.showMessage("NOVA è ancora attivo", "I download continuano in background.",
+            self.tray.showMessage("NOVA is still running", "Downloads continue in the background.",
                                   icons.app_icon(), 4000)
             return
         e.accept()

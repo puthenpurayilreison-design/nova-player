@@ -40,7 +40,7 @@ class LinkRow(QFrame):
         h.addLayout(v, 1)
         when = time.strftime("%d/%m %H:%M", time.localtime(item["time"]))
         h.addWidget(label(when, "faint"))
-        x = IconButton("x", "Rimuovi", 30, 14)
+        x = IconButton("x", "Remove", 30, 14)
         x.clicked.connect(lambda: on_remove(item["url"]))
         h.addWidget(x)
         self.mousePressEvent = lambda e: on_play(item["url"]) if e.button() == Qt.LeftButton else None
@@ -56,7 +56,7 @@ class StreamPage(QWidget):
         m = theme.s(28)
         root.setContentsMargins(m, m - 4, m, m)
         root.setSpacing(theme.s(18))
-        root.addWidget(PageHeader("Stream", "Incolla un link e guardalo subito, fino al 4K, con buffer ottimizzato."))
+        root.addWidget(PageHeader("Stream", "Paste a link and watch it right away, up to 4K, with an optimised buffer."))
 
         card = Card()
         cv = QVBoxLayout(card)
@@ -66,24 +66,24 @@ class StreamPage(QWidget):
         row.setSpacing(10)
         self.input = QLineEdit()
         self.input.setObjectName("bigInput")
-        self.input.setPlaceholderText("https://…  (link diretto .mkv/.mp4, .m3u8, .mpd o pagina video)")
+        self.input.setPlaceholderText("https://…  (direct .mkv/.mp4 link, .m3u8, .mpd or video page)")
         self.input.returnPressed.connect(self._play)
-        paste = IconButton("clipboard", "Incolla", 46, 20)
+        paste = IconButton("clipboard", "Paste", 46, 20)
         paste.clicked.connect(self._paste)
         row.addWidget(self.input, 1)
         row.addWidget(paste)
         cv.addLayout(row)
 
         q = QHBoxLayout()
-        q.addWidget(label("Qualità massima", "muted"))
+        q.addWidget(label("Maximum quality", "muted"))
         cur = settings.get("stream", "max_height")
         self.quality = Segmented([("2160", "4K"), ("1440", "1440p"), ("1080", "1080p"), ("720", "720p")],
                                  str(cur if cur in (2160, 1440, 1080, 720) else 2160))
         self.quality.changed.connect(lambda v: settings.set("stream", "max_height", int(v)))
         q.addWidget(self.quality)
         q.addStretch()
-        self.b_dl = button("Scarica", None, "download", self._download)
-        self.b_play = button("Riproduci", "primary", "play", self._play)
+        self.b_dl = button("Download", None, "download", self._download)
+        self.b_play = button("Play", "primary", "play", self._play)
         q.addWidget(self.b_dl)
         q.addWidget(self.b_play)
         cv.addLayout(q)
@@ -96,9 +96,9 @@ class StreamPage(QWidget):
         tips = QHBoxLayout()
         tips.setSpacing(theme.s(12))
         for ic, t, d in (
-            ("speed", "Buffer intelligente", "Cache fino a 1 GB e 60 s di pre-lettura: niente scatti anche in 4K."),
-            ("retry", "Riconnessione automatica", "Se la rete cade, la riproduzione riprende da sola."),
-            ("film", "HLS e DASH", "Sceglie da solo la qualità più alta entro il limite impostato."),
+            ("speed", "Smart buffer", "Up to 1 GB cache and 60 s read-ahead: no stutter even in 4K."),
+            ("retry", "Automatic reconnection", "If the network drops, playback resumes by itself."),
+            ("film", "HLS and DASH", "Picks the highest quality within the limit you set."),
         ):
             c = Card(flat=True)
             v = QVBoxLayout(c)
@@ -112,7 +112,7 @@ class StreamPage(QWidget):
         root.addLayout(tips)
 
         hh = QHBoxLayout()
-        hh.addWidget(label("Link recenti", "sectionTitle"))
+        hh.addWidget(label("Recent links", "sectionTitle"))
         hh.addStretch()
         root.addLayout(hh)
         self.scroll = QScrollArea()
@@ -133,8 +133,8 @@ class StreamPage(QWidget):
                 w.deleteLater()
         items = [i for i in history.items if i["kind"] == "link"][:40]
         if not items:
-            self.list.addWidget(EmptyState("link", "Nessun link recente",
-                                           "I link che riproduci compariranno qui, pronti da riaprire."))
+            self.list.addWidget(EmptyState("link", "No recent links",
+                                           "The links you play will show up here, ready to reopen."))
         for n, it in enumerate(items):
             r = LinkRow(it, self.play.emit, history.remove)
             self.list.addWidget(r)
@@ -149,7 +149,7 @@ class StreamPage(QWidget):
     def _check(self) -> str | None:
         u = self.input.text().strip()
         if not looks_like_url(u):
-            self.err.setText("Inserisci un link valido che inizi con http://, https:// o ftp://")
+            self.err.setText("Enter a valid link starting with http://, https:// or ftp://")
             self.err.show()
             animate_in(self.err, 0, 6)
             return None

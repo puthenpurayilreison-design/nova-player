@@ -360,7 +360,7 @@ class TorrentManager(QObject):
 
     def add_magnet(self, uri: str, save_path: str):
         if not self.ses:
-            self.error.emit("Torrent non disponibile", LT_ERROR or "")
+            self.error.emit("Torrent not available", LT_ERROR or "")
             return
         atp = lt.parse_magnet_uri(uri)
         atp.save_path = save_path
@@ -370,7 +370,7 @@ class TorrentManager(QObject):
             atp.flags |= lt.torrent_flags.sequential_download
         tid = str(atp.info_hashes.get_best()) if hasattr(atp, "info_hashes") else None
         if tid and tid in self.items:
-            self.error.emit("Torrent già presente", "Questo torrent è già nell'elenco.")
+            self.error.emit("Torrent already added", "This torrent is already in the list.")
             return
         h = self.ses.add_torrent(atp)
         self._register(h, {"need_select": True})
@@ -378,7 +378,7 @@ class TorrentManager(QObject):
     def add_instant(self, src: str, save_path: str):
         """Un clic: niente domande, scarica solo il video principale in sequenziale e avvisa quando è guardabile."""
         if not self.ses:
-            self.error.emit("Torrent non disponibile", LT_ERROR or "")
+            self.error.emit("Torrent not available", LT_ERROR or "")
             return None
         if src.startswith("magnet:"):
             atp = lt.parse_magnet_uri(src)
@@ -440,7 +440,7 @@ class TorrentManager(QObject):
             atp.flags |= lt.torrent_flags.sequential_download
         tid = str(ti.info_hashes().get_best())
         if tid in self.items:
-            self.error.emit("Torrent già presente", "Questo torrent è già nell'elenco.")
+            self.error.emit("Torrent already added", "This torrent is already in the list.")
             return None
         h = self.ses.add_torrent(atp)
         return self._register(h, {"selected": [i for i, p in enumerate(priorities) if p], "stream_idx": stream_idx})
@@ -595,7 +595,7 @@ class TorrentManager(QObject):
                 except Exception:
                     pass
             elif isinstance(a, lt.file_error_alert):
-                self.error.emit("Errore file torrent", a.message())
+                self.error.emit("Torrent file error", a.message())
         return saved
 
     def _tick(self):
@@ -631,7 +631,7 @@ class TorrentManager(QObject):
                 elif it.get("need_select") or not it.get("selected"):
                     it["need_select"] = True
                     self.metadata.emit(tid)
-            it.update(name=s.name or it.get("name") or "Recupero metadati…", total=s.total_wanted,
+            it.update(name=s.name or it.get("name") or "Fetching metadata…", total=s.total_wanted,
                       done=s.total_wanted_done, progress=(s.total_wanted_done / s.total_wanted) if s.total_wanted else 0,
                       speed=s.download_payload_rate, up=s.upload_payload_rate, peers=s.num_peers,
                       seeds=s.num_seeds, status=status, error=s.errc.message() if s.errc.value() else "",
@@ -695,7 +695,7 @@ class TorrentManager(QObject):
 class FileSelectDialog(QDialog):
     def __init__(self, parent, ti, save_path):
         super().__init__(parent)
-        self.setWindowTitle("Scegli i file")
+        self.setWindowTitle("Choose files")
         self.resize(720, 520)
         self.ti = ti
         self.save_path = save_path
@@ -706,7 +706,7 @@ class FileSelectDialog(QDialog):
         self.info = label("", "muted")
         v.addWidget(self.info)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["File", "Dimensione"])
+        self.tree.setHeaderLabels(["File", "Size"])
         self.tree.setRootIsDecorated(False)
         self.tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -714,7 +714,7 @@ class FileSelectDialog(QDialog):
         from .safety import fake_verdict
         why = fake_verdict([(p, s) for _, p, s in self.files])
         if why:
-            warn = label("⚠  Attenzione, probabile torrent falso: " + why, wrap=True)
+            warn = label("⚠  Warning, probably a fake torrent: " + why, wrap=True)
             warn.setStyleSheet(f"background:rgba(255,80,80,0.14);color:{theme.danger};border-radius:10px;"
                                "padding:10px 12px;font-weight:600;")
             v.insertWidget(max(0, v.count() - 1), warn)
@@ -729,27 +729,27 @@ class FileSelectDialog(QDialog):
         self.tree.itemChanged.connect(self._update)
         v.addWidget(self.tree, 1)
         q = QHBoxLayout()
-        q.addWidget(button("Tutti", "chip", None, lambda: self._set(lambda p: True)))
-        q.addWidget(button("Solo video", "chip", None, lambda: self._set(lambda p: Path(p).suffix.lower() in VIDEO_EXT)))
-        q.addWidget(button("Nessuno", "chip", None, lambda: self._set(lambda p: False)))
+        q.addWidget(button("All", "chip", None, lambda: self._set(lambda p: True)))
+        q.addWidget(button("Video only", "chip", None, lambda: self._set(lambda p: Path(p).suffix.lower() in VIDEO_EXT)))
+        q.addWidget(button("None", "chip", None, lambda: self._set(lambda p: False)))
         q.addStretch()
         v.addLayout(q)
         r = QHBoxLayout()
         self.seq = Toggle(settings.get("torrent", "sequential"))
         r.addWidget(self.seq)
-        r.addWidget(label("Download sequenziale (guarda mentre scarica)"))
+        r.addWidget(label("Sequential download (watch while downloading)"))
         r.addStretch()
         v.addLayout(r)
         d = QHBoxLayout()
         self.dir_l = label(save_path, "faint")
-        d.addWidget(label("Destinazione:", "muted"))
+        d.addWidget(label("Destination:", "muted"))
         d.addWidget(self.dir_l, 1)
-        d.addWidget(button("Cambia…", None, "folder", self._dir))
+        d.addWidget(button("Change…", None, "folder", self._dir))
         v.addLayout(d)
         b = QHBoxLayout()
         b.addStretch()
-        b.addWidget(button("Annulla", None, None, self.reject))
-        self.ok = button("Avvia download", "primary", "download", self.accept)
+        b.addWidget(button("Cancel", None, None, self.reject))
+        self.ok = button("Start download", "primary", "download", self.accept)
         b.addWidget(self.ok)
         v.addLayout(b)
         self._update()
@@ -769,12 +769,12 @@ class FileSelectDialog(QDialog):
             if it.checkState(0) == Qt.Checked:
                 n += 1
                 tot += self.files[k][2]
-        self.info.setText(f"{n} file selezionati · {human_size(tot)}")
+        self.info.setText(f"{n} files selected · {human_size(tot)}")
         if hasattr(self, "ok"):
             self.ok.setEnabled(n > 0)
 
     def _dir(self):
-        d = QFileDialog.getExistingDirectory(self, "Cartella di destinazione", self.save_path)
+        d = QFileDialog.getExistingDirectory(self, "Destination folder", self.save_path)
         if d:
             self.save_path = d
             self.dir_l.setText(d)
@@ -805,14 +805,14 @@ class DebridCard(Card):
         top.addWidget(self.title, 1)
         self.pill = Pill("Real-Debrid", theme.info)
         top.addWidget(self.pill)
-        x = IconButton("x", "Chiudi", 30, 14)
+        x = IconButton("x", "Close", 30, 14)
         x.clicked.connect(self.deleteLater)
         top.addWidget(x)
         self.v.addLayout(top)
         self.bar = AnimatedProgress(height=5)
         self.bar.set_indeterminate(True)
         self.v.addWidget(self.bar)
-        self.status = label("Invio a Real-Debrid…", "faint")
+        self.status = label("Sending to Real-Debrid…", "faint")
         self.v.addWidget(self.status)
 
     def progress(self, text, frac):
@@ -823,17 +823,17 @@ class DebridCard(Card):
 
     def links(self, files):
         self.bar.set_value(1.0, theme.success)
-        self.pill.set("Pronto", theme.success)
-        self.status.setText(f"{len(files)} link diretti pronti")
+        self.pill.set("Ready", theme.success)
+        self.status.setText(f"{len(files)} direct links ready")
         for f in files:
             r = QHBoxLayout()
             nm = label(f"{f['filename']}  ·  {human_size(f.get('filesize'))}")
             r.addWidget(nm, 1)
             if Path(f["filename"]).suffix.lower() in VIDEO_EXT | AUDIO_EXT:
-                r.addWidget(button("Riproduci", "primary", "play", lambda _=False, u=f["download"]: self.page.play.emit(u)))
-            r.addWidget(button("Scarica", None, "download",
+                r.addWidget(button("Play", "primary", "play", lambda _=False, u=f["download"]: self.page.play.emit(u)))
+            r.addWidget(button("Download", None, "download",
                                lambda _=False, u=f["download"]: self.page.download_direct.emit(u)))
-            r.addWidget(IconButton("clipboard", "Copia link", 34, 16, ))
+            r.addWidget(IconButton("clipboard", "Copy link", 34, 16, ))
             r.itemAt(r.count() - 1).widget().clicked.connect(
                 lambda _=False, u=f["download"]: QApplication.clipboard().setText(u))
             self.v.addLayout(r)
@@ -841,7 +841,7 @@ class DebridCard(Card):
     def fail(self, msg):
         self.bar.set_value(1.0, theme.danger)
         self.bar.set_indeterminate(False)
-        self.pill.set("Errore", theme.danger)
+        self.pill.set("Error", theme.danger)
         self.status.setText(msg)
 
 
@@ -862,29 +862,28 @@ class InstantCard(Card):
         ic = label("")
         ic.setPixmap(icons.pixmap("speed", theme.accent, 22))
         top.addWidget(ic)
-        self.title = label("Link istantaneo", "sectionTitle")
+        self.title = label("Instant link", "sectionTitle")
         top.addWidget(self.title, 1)
-        self.pill = Pill("Avvio…", theme.accent)
+        self.pill = Pill("Starting…", theme.accent)
         top.addWidget(self.pill)
-        x = IconButton("x", "Chiudi (il download continua)", 30, 14)
+        x = IconButton("x", "Close (the download continues)", 30, 14)
         x.clicked.connect(self._close)
         top.addWidget(x)
         v.addLayout(top)
         self.bar = AnimatedProgress(height=5)
         self.bar.set_indeterminate(True)
         v.addWidget(self.bar)
-        self.status = label("Cerco i peer…", "faint")
+        self.status = label("Looking for peers…", "faint")
         v.addWidget(self.status)
         lr = QHBoxLayout()
         self.link = QLineEdit()
         self.link.setReadOnly(True)
-        self.link.setPlaceholderText("Il link diretto comparirà qui")
+        self.link.setPlaceholderText("The direct link will show up here")
         lr.addWidget(self.link, 1)
-        self.b_copy = button("Copia link", None, "clipboard",
+        self.b_copy = button("Copy link", None, "clipboard",
                              lambda: (QApplication.clipboard().setText(self.link.text()),
-                                      self.page.toast.emit("Link copiato", "Funziona in NOVA, VLC o nel browser "
-                                                           "finché NOVA è aperto.", "ok")))
-        self.b_play = button("Guarda ora", "primary", "play", self._play)
+                                      self.page.toast.emit("Link copied", "Works in NOVA, VLC or the browser while NOVA is open.", "ok")))
+        self.b_play = button("Watch now", "primary", "play", self._play)
         lr.addWidget(self.b_copy)
         lr.addWidget(self.b_play)
         v.addLayout(lr)
@@ -935,10 +934,10 @@ class InstantCard(Card):
         if s.name:
             self.title.setText(s.name[:90])
         if not s.has_metadata:
-            self.status.setText(f"Collegamento ai peer e lettura metadati… {el:.0f}s · {s.num_peers} peer")
+            self.status.setText(f"Connecting to peers and reading metadata… {el:.0f}s · {s.num_peers} peers")
             if el > 60 and s.num_peers == 0:
-                self.pill.set("Nessun peer", theme.danger)
-                self.status.setText("Nessun peer dopo 60 s: torrent senza seeder o connessione bloccata dal firewall.")
+                self.pill.set("No peers", theme.danger)
+                self.status.setText("No peers after 60 s: torrent without seeders or connection blocked by the firewall.")
             return
         if it.get("stream_idx") is None and not it.get("selected"):
             return
@@ -951,19 +950,17 @@ class InstantCard(Card):
             self.bar.set_indeterminate(False)
             self.bar.set_value(frac)
             self.pill.set(f"Buffer {frac * 100:.0f}%", theme.accent)
-            self.status.setText(f"Preparo l'inizio del video… {human_speed(s.download_payload_rate)} · "
-                                f"{s.num_peers} peer · {el:.0f}s")
+            self.status.setText(f"Preparing the start of the video… {human_speed(s.download_payload_rate)} · {s.num_peers} peers · {el:.0f}s")
             if frac >= 1.0:
                 self.ready = True
                 self.b_play.setEnabled(True)
-                self.pill.set("Pronto", theme.success)
+                self.pill.set("Ready", theme.success)
                 if self.autoplay:
                     self._play()
         else:
             tot = s.total_wanted or 1
             self.bar.set_value(s.total_wanted_done / tot, theme.success)
-            self.status.setText(f"Pronto in {self.ready_time:.0f}s · scaricato {s.total_wanted_done / tot * 100:.0f}% · "
-                                f"↓ {human_speed(s.download_payload_rate)} · {s.num_peers} peer"
+            self.status.setText(f"Ready in {self.ready_time:.0f}s · downloaded {s.total_wanted_done / tot * 100:.0f}% · ↓ {human_speed(s.download_payload_rate)} · {s.num_peers} peers"
                                 if hasattr(self, "ready_time") else "")
         if self.ready and not hasattr(self, "ready_time"):
             self.ready_time = el
@@ -984,33 +981,33 @@ class TorrentPage(QWidget):
         m = theme.s(28)
         root.setContentsMargins(m, m - 4, m, m)
         root.setSpacing(theme.s(16))
-        root.addWidget(PageHeader("Torrent", "Da .torrent o magnet a un normale file MKV/MP4. Guarda mentre scarica."))
+        root.addWidget(PageHeader("Torrent", "From .torrent or magnet to a normal MKV/MP4 file. Watch while downloading."))
         row = QHBoxLayout()
         row.setSpacing(10)
         self.input = QLineEdit()
         self.input.setObjectName("bigInput")
-        self.input.setPlaceholderText("Incolla un link magnet:?xt=…  oppure trascina un file .torrent")
+        self.input.setPlaceholderText("Paste a magnet:?xt=… link or drop a .torrent file")
         self.input.returnPressed.connect(self._add)
         row.addWidget(self.input, 1)
-        row.addWidget(button("Apri .torrent", None, "folder", self._open))
+        row.addWidget(button("Open .torrent", None, "folder", self._open))
         self.b_rd = button("Real-Debrid", None, "cloud", self._debrid)
-        self.b_rd.setToolTip("Scarica sul cloud Real-Debrid e ottieni un link diretto HTTP")
+        self.b_rd.setToolTip("Download on the Real-Debrid cloud and get a direct HTTP link")
         self.b_rd.hide()          # versione pubblica: niente servizi a pagamento di terzi
-        row.addWidget(button("Aggiungi", None, "plus", self._add))
-        b_inst = button("Link istantaneo", "primary", "speed", self._instant)
-        b_inst.setToolTip("Un clic: trasforma il torrent in un link diretto e lo fa partire nel player")
+        row.addWidget(button("Add", None, "plus", self._add))
+        b_inst = button("Instant link", "primary", "speed", self._instant)
+        b_inst.setToolTip("One click: turns the torrent into a direct link and starts it in the player")
         row.addWidget(b_inst)
         root.addLayout(row)
         self.summary = label("", "muted")
         self.hero = SpeedHero()
         root.addWidget(self.hero)
         pr = QHBoxLayout()
-        self.port_pill = Pill("Porta: verifica in corso…", theme.text2)
+        self.port_pill = Pill("Port: checking…", theme.text2)
         pr.addWidget(self.port_pill)
         self.port_hint = label("", "faint")
         pr.addWidget(self.port_hint)
         pr.addStretch()
-        self.b_port = button("Apri porta nel firewall", None, "check", self.open_firewall.emit)
+        self.b_port = button("Open port in the firewall", None, "check", self.open_firewall.emit)
         self.b_port.hide()
         pr.addWidget(self.b_port)
         root.addLayout(pr)
@@ -1022,11 +1019,10 @@ class TorrentPage(QWidget):
         self.list = QVBoxLayout(host)
         self.list.setContentsMargins(0, 0, 4, 0)
         self.list.setSpacing(theme.s(10))
-        msg = ("Incolla un magnet e premi ⚡ Link istantaneo: NOVA lo trasforma in un link diretto e lo fa partire "
-               "nel player appena c'è abbastanza buffer. Con Aggiungi invece lo scarichi alla massima velocità.")
+        msg = ("Paste a magnet and press ⚡ Instant link: NOVA turns it into a direct link and starts it in the player as soon as there's enough buffer. With Add you download it at full speed instead.")
         if LT_ERROR:
-            msg = f"libtorrent non disponibile: {LT_ERROR}. Esegui di nuovo setup.bat."
-        self.empty = EmptyState("magnet", "Nessun torrent", msg)
+            msg = f"libtorrent not available: {LT_ERROR}. Run setup.bat again."
+        self.empty = EmptyState("magnet", "No torrents", msg)
         self.list.addWidget(self.empty)
         self.list.addStretch()
         self.scroll.setWidget(host)
@@ -1049,18 +1045,18 @@ class TorrentPage(QWidget):
 
     def _update_port(self, active):
         if self.mgr.incoming:
-            self.port_pill.set("Porta aperta ✓", theme.success)
-            self.port_hint.setText("I peer riescono a collegarsi a te: velocità piena.")
+            self.port_pill.set("Port open ✓", theme.success)
+            self.port_hint.setText("Peers can connect to you: full speed.")
             self.b_port.hide()
             return
         if active:
             self._active_since = self._active_since or time.time()
         if self._active_since and time.time() - self._active_since > 90:
-            self.port_pill.set("Porta chiusa", theme.warning)
-            self.port_hint.setText("Ti colleghi solo tu agli altri: la velocità può essere molto più bassa.")
+            self.port_pill.set("Port closed", theme.warning)
+            self.port_hint.setText("Only you connect to others: speed may be much lower.")
             self.b_port.show()
         else:
-            self.port_pill.set("Porta: verifica durante il download", theme.text2)
+            self.port_pill.set("Port: checked during the download", theme.text2)
             self.port_hint.setText("")
 
     def showEvent(self, e):
@@ -1092,10 +1088,10 @@ class TorrentPage(QWidget):
             self.input.clear()
             self.add_torrent_file(t)
         else:
-            self.toast.emit("Link non valido", "Serve un link magnet o un file .torrent.", "warn")
+            self.toast.emit("Invalid link", "A magnet link or a .torrent file is needed.", "warn")
 
     def _open(self):
-        f, _ = QFileDialog.getOpenFileName(self, "Apri file torrent", "", "Torrent (*.torrent)")
+        f, _ = QFileDialog.getOpenFileName(self, "Open torrent file", "", "Torrent (*.torrent)")
         if f:
             self.add_torrent_file(f)
 
@@ -1107,7 +1103,7 @@ class TorrentPage(QWidget):
 
     def add_torrent_file(self, path):
         if lt is None:
-            self.toast.emit("Torrent non disponibile", LT_ERROR or "", "err")
+            self.toast.emit("Torrent not available", LT_ERROR or "", "err")
             return
         ti = self._load_torrent(path)
         if ti is None:
@@ -1122,7 +1118,7 @@ class TorrentPage(QWidget):
         try:
             data = Path(path).read_bytes()
         except OSError as e:
-            self.toast.emit("Impossibile leggere il file", str(e), "err")
+            self.toast.emit("Can't read the file", str(e), "err")
             return None
         head = data[:4096].lstrip()
         text = head.decode("utf-8", "ignore")
@@ -1130,18 +1126,17 @@ class TorrentPage(QWidget):
             self.mgr.add_magnet(text[text.index("magnet:?"):].split()[0], self._save_dir())
             return None
         if not data.strip():
-            msg = ("Il file è vuoto (0 byte). Se è su OneDrive, aprilo una volta o scegli "
-                   "'Mantieni sempre su questo dispositivo', poi riprova.")
+            msg = ("The file is empty (0 bytes). If it's on OneDrive, open it once or choose 'Always keep on this device', then try again.")
         elif head[:1] == b"<" or "<html" in text.lower():
-            msg = "Questo file è una pagina web, non un torrent. Riscaricalo dal sito oppure usa il link magnet."
+            msg = "This file is a web page, not a torrent. Download it again from the website or use the magnet link."
         elif head[:1] != b"d":
-            msg = "Il contenuto non è un file .torrent (formato bencode). Riscaricalo oppure usa il link magnet."
+            msg = "The content is not a .torrent file (bencode format). Download it again or use the magnet link."
         else:
             try:
                 return lt.torrent_info(data)
             except Exception as e:
-                msg = f"Il file .torrent è incompleto o danneggiato ({e}). Riscaricalo oppure usa il link magnet."
-        self.toast.emit("File torrent non valido", msg, "err")
+                msg = f"The .torrent file is incomplete or damaged ({e}). Download it again or use the magnet link."
+        self.toast.emit("Invalid torrent file", msg, "err")
         return None
 
     def _choose_files(self, tid):
@@ -1159,8 +1154,7 @@ class TorrentPage(QWidget):
                 self.mgr.apply_selection(tid, prios, seq)
                 self.mgr.resume(tid)
             else:
-                self.toast.emit("Nessun file scelto", "Il torrent resta in elenco: premi ▶ o il menu (tasto destro) "
-                                "› Scegli file quando vuoi.", "info")
+                self.toast.emit("No file chosen", "The torrent stays in the list: press ▶ or the menu (right click) › Choose files whenever you want.", "info")
         finally:
             it["_dialog"] = False
 
@@ -1185,9 +1179,9 @@ class TorrentPage(QWidget):
         acts = []
         bv = self.mgr.best_video(tid)
         if bv:
-            acts.append(("Riproduci", lambda: self.play_item(tid)))
-        acts.append(("Apri cartella", lambda: self.open_folder(tid)))
-        self.window().notify("Torrent completato", it.get("name", ""), acts)
+            acts.append(("Play", lambda: self.play_item(tid)))
+        acts.append(("Open folder", lambda: self.open_folder(tid)))
+        self.window().notify("Torrent complete", it.get("name", ""), acts)
 
     def refresh(self):
         for tid, c in list(self.cards.items()):
@@ -1198,8 +1192,8 @@ class TorrentPage(QWidget):
         peers = sum(i.get("peers", 0) for i in list(self.mgr.items.values()) if i.get("status") == "active")
         self._update_port(n)
         up = sum(i.get("up", 0) for i in list(self.mgr.items.values()))
-        self.hero.update_speed(spd, f"{n} torrent attivi · {peers} peer · ↑ {human_speed(up)}" if n
-                               else "Nessun torrent attivo")
+        self.hero.update_speed(spd, f"{n} active torrents · {peers} peers · ↑ {human_speed(up)}" if n
+                               else "No active torrents")
 
     # azioni card
     def pause_item(self, tid):
@@ -1214,8 +1208,8 @@ class TorrentPage(QWidget):
 
     def remove_item(self, tid):
         m = QMenu(self)
-        m.addAction("Rimuovi (mantieni i file)", lambda: self.mgr.remove(tid, False))
-        m.addAction("Rimuovi ed elimina i file", lambda: self.mgr.remove(tid, True))
+        m.addAction("Remove (keep the files)", lambda: self.mgr.remove(tid, False))
+        m.addAction("Remove and delete the files", lambda: self.mgr.remove(tid, True))
         from PySide6.QtGui import QCursor
         m.exec(QCursor.pos())
 
@@ -1230,7 +1224,7 @@ class TorrentPage(QWidget):
         if u:
             self.play.emit(u)
         else:
-            self.toast.emit("Niente da riprodurre", "Nessun file video selezionato in questo torrent.", "warn")
+            self.toast.emit("Nothing to play", "No video file selected in this torrent.", "warn")
 
     def open_folder(self, tid):
         it = self.mgr.items.get(tid)
@@ -1252,29 +1246,29 @@ class TorrentPage(QWidget):
         h = it["h"]
         m = QMenu(self)
         if h.has_metadata():
-            m.addAction("Scegli file…", lambda: self._choose_files(tid))
+            m.addAction("Choose files…", lambda: self._choose_files(tid))
             seq = bool(h.flags() & lt.torrent_flags.sequential_download)
-            a = m.addAction("Download sequenziale")
+            a = m.addAction("Sequential download")
             a.setCheckable(True)
             a.setChecked(seq)
             a.toggled.connect(lambda on: h.set_flags(lt.torrent_flags.sequential_download) if on
                               else h.unset_flags(lt.torrent_flags.sequential_download))
             try:
                 mag = lt.make_magnet_uri(h)
-                m.addAction("Copia link magnet", lambda: QApplication.clipboard().setText(mag))
+                m.addAction("Copy magnet link", lambda: QApplication.clipboard().setText(mag))
             except Exception:
                 pass
-        m.addAction("Verifica file", h.force_recheck)
+        m.addAction("Verify files", h.force_recheck)
         m.addSeparator()
-        m.addAction("Rimuovi (mantieni i file)", lambda: self.mgr.remove(tid, False))
-        m.addAction("Rimuovi ed elimina i file", lambda: self.mgr.remove(tid, True))
+        m.addAction("Remove (keep the files)", lambda: self.mgr.remove(tid, False))
+        m.addAction("Remove and delete the files", lambda: self.mgr.remove(tid, True))
         m.exec(gpos)
 
     # ⚡ Link istantaneo
     def _instant(self):
         t = self.input.text().strip()
         if not t.startswith("magnet:") and not (t.lower().endswith(".torrent") and os.path.isfile(t)):
-            f, _ = QFileDialog.getOpenFileName(self, "Scegli un .torrent (oppure incolla un magnet)", "",
+            f, _ = QFileDialog.getOpenFileName(self, "Choose a .torrent (or paste a magnet)", "",
                                                "Torrent (*.torrent)")
             if not f:
                 return
@@ -1288,8 +1282,7 @@ class TorrentPage(QWidget):
         if False:
             # 1) Real-Debrid: se è in cache il link HTTP arriva in pochi secondi
             card = self._debrid_card(src, instant=True)
-            card.rd.not_cached.connect(lambda: (card.progress("Non in cache su Real-Debrid: lo scarica il cloud. "
-                                                              "Intanto parte lo stream via torrent ↓", None),
+            card.rd.not_cached.connect(lambda: (card.progress("Not cached on Real-Debrid: the cloud downloads it. Meanwhile the torrent stream starts ↓", None),
                                                 self._instant_local(src)))
         else:
             self._instant_local(src)
@@ -1307,9 +1300,9 @@ class TorrentPage(QWidget):
     def _debrid(self):
         t = self.input.text().strip()
         if not t.startswith("magnet:") and not (t.lower().endswith(".torrent") and os.path.isfile(t)):
-            f, _ = QFileDialog.getOpenFileName(self, "Torrent da inviare a Real-Debrid", "", "Torrent (*.torrent)")
+            f, _ = QFileDialog.getOpenFileName(self, "Torrent to send to Real-Debrid", "", "Torrent (*.torrent)")
             if not f:
-                self.toast.emit("Real-Debrid", "Incolla un magnet nel campo o scegli un file .torrent.", "info")
+                self.toast.emit("Real-Debrid", "Paste a magnet in the field or choose a .torrent file.", "info")
                 return
             t = f
         self.input.clear()

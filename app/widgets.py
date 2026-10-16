@@ -472,7 +472,7 @@ class Sidebar(QWidget):
         rh = self._ref_rect().contains(e.position())
         if rh != self._ref_hover:
             self._ref_hover = rh
-            self.setToolTip("Aggiorna questa scheda (F5)" if rh else "")
+            self.setToolTip("Refresh this tab (F5)" if rh else "")
             self.update()
         h = self._hit(e.position().y())
         if h != self._hover:
@@ -742,7 +742,7 @@ class Toast(QFrame):
             v.addSpacing(6)
             v.addLayout(ar)
         h.addLayout(v, 1)
-        x = IconButton("x", "Chiudi", 26, 14)
+        x = IconButton("x", "Close", 26, 14)
         x.clicked.connect(self.close_anim)
         h.addWidget(x, 0, Qt.AlignTop)
         self.setFixedWidth(360)
@@ -872,7 +872,7 @@ class SpeedHero(Card):
         row.addWidget(self.unit, 0, Qt.AlignBottom)
         row.addStretch()
         v.addLayout(row)
-        self.sub = label("Nessun trasferimento attivo", "faint")
+        self.sub = label("No active transfers", "faint")
         v.addWidget(self.sub)
         h.addLayout(v)
         self.spark = Sparkline(120)

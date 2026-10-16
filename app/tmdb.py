@@ -42,11 +42,11 @@ def _get(path: str, params: dict, key: str | None = None, timeout=12) -> dict:
 def check_key(key: str) -> tuple[bool, str]:
     try:
         _get("/configuration", {}, key=key.strip())
-        return True, "Chiave valida: i poster verranno scaricati da soli."
+        return True, "Valid key: posters will be downloaded automatically."
     except urllib.error.HTTPError as e:
-        return False, "Chiave non valida." if e.code == 401 else f"Errore TMDB ({e.code})."
+        return False, "Invalid key." if e.code == 401 else f"TMDB error ({e.code})."
     except Exception as e:
-        return False, f"TMDB non raggiungibile: {e}"
+        return False, f"TMDB unreachable: {e}"
 
 
 def search(title: str, year: int | None, kind: str) -> list[dict]:

@@ -40,9 +40,9 @@ def load_cover(key: str):
 def remaining(it) -> str:
     left = max(0, (it.get("dur") or 0) - (it.get("pos") or 0))
     if left < 60:
-        return "Finito"
+        return "Finished"
     h, m = int(left // 3600), int(left % 3600 // 60)
-    return f"{h}h {m:02d}m rimanenti" if h else f"{m} min rimanenti"
+    return f"{h}h {m:02d}m left" if h else f"{m} min left"
 
 
 def is_unfinished(it) -> bool:
@@ -170,14 +170,14 @@ class Hero(QFrame):
         v = QVBoxLayout()
         v.setSpacing(theme.s(8))
         v.addStretch()
-        kicker = label("CONTINUA A GUARDARE")
+        kicker = label("CONTINUE WATCHING")
         kicker.setStyleSheet(f"color:{theme.accent};font-weight:700;letter-spacing:2px;font-size:{theme.fs(8.5)}pt;")
         v.addWidget(kicker)
         t = label(item_title(it), wrap=True)
         t.setStyleSheet(f"font-size:{theme.fs(22)}pt;font-weight:700;color:white;")
         t.setMaximumWidth(560)
         v.addWidget(t)
-        meta = f"{human_time(it.get('pos'))} di {human_time(it.get('dur'))}  ·  {remaining(it)}"
+        meta = f"{human_time(it.get('pos'))} of {human_time(it.get('dur'))}  ·  {remaining(it)}"
         ml = label(meta)
         ml.setStyleSheet("color:rgba(255,255,255,0.75);")
         v.addWidget(ml)
@@ -187,8 +187,8 @@ class Hero(QFrame):
         v.addWidget(bar)
         row = QHBoxLayout()
         row.setSpacing(10)
-        b1 = button(f"Riprendi da {human_time(it.get('pos'))}", "primary", "play", lambda: page.play_item.emit(it))
-        b2 = button("Ricomincia", None, "retry", lambda: page.play_item.emit({**it, "restart": True}))
+        b1 = button(f"Resume from {human_time(it.get('pos'))}", "primary", "play", lambda: page.play_item.emit(it))
+        b2 = button("Start over", None, "retry", lambda: page.play_item.emit({**it, "restart": True}))
         b2.setStyleSheet("QPushButton{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);"
                          "color:white;} QPushButton:hover{background:rgba(255,255,255,0.2);}")
         row.addWidget(b1)
@@ -255,17 +255,16 @@ class Welcome(QFrame):
         m = theme.s(36)
         v.setContentsMargins(m, m, m, m)
         v.addStretch()
-        t = label("Benvenuto in NOVA")
+        t = label("Welcome to NOVA")
         t.setStyleSheet(f"font-size:{theme.fs(24)}pt;font-weight:700;color:white;")
         v.addWidget(t)
-        d = label("Apri un file, incolla un link o un magnet: i video che guardi compariranno qui, "
-                  "con il punto da cui riprendere.", wrap=True)
+        d = label("Open a file, paste a link or a magnet: the videos you watch will show up here, with the point to resume from.", wrap=True)
         d.setStyleSheet("color:rgba(255,255,255,0.75);")
         d.setMaximumWidth(520)
         v.addWidget(d)
         row = QHBoxLayout()
-        row.addWidget(button("Apri file", "primary", "folder", page.open_file.emit))
-        for txt, ic, key in (("Incolla un link", "link", "stream"), ("Torrent", "magnet", "torrent")):
+        row.addWidget(button("Open file", "primary", "folder", page.open_file.emit))
+        for txt, ic, key in (("Paste a link", "link", "stream"), ("Torrent", "magnet", "torrent")):
             b = button(txt, None, ic, lambda _=False, k=key: page.go.emit(k))
             b.setStyleSheet("QPushButton{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);"
                             "color:white;} QPushButton:hover{background:rgba(255,255,255,0.2);}")
@@ -412,17 +411,17 @@ class HomePage(QWidget):
         w_wide, w_post = theme.s(300), theme.s(158)
         rows = []
         if cont:
-            rows.append(("Continua a guardare", [self._card(i, w_wide, True, _ep_sub(i) if i.get("mkind") == "tv"
+            rows.append(("Continue watching", [self._card(i, w_wide, True, _ep_sub(i) if i.get("mkind") == "tv"
                                                             else remaining(i)) for i in cont[:20]], ""))
         favs = sorted([i for i in groups if i.get("fav")], key=lambda i: -(i.get("fav_t") or 0))
         if favs:
-            rows.append(("La mia lista", [self._card(i, w_post) for i in favs[:30]], ""))
+            rows.append(("My list", [self._card(i, w_post) for i in favs[:30]], ""))
         shows = [i for i in groups if i.get("mkind") == "tv" and i.get("show")]
         if shows:
-            rows.append(("Le tue serie", [self._card(i, w_post) for i in shows[:30]], ""))
+            rows.append(("Your series", [self._card(i, w_post) for i in shows[:30]], ""))
         movies = [i for i in groups if i.get("mkind") != "tv"]
         if movies:
-            rows.append(("Film", [self._card(i, w_post) for i in movies[:30]], ""))
+            rows.append(("Movies", [self._card(i, w_post) for i in movies[:30]], ""))
         # per lingua (dal nome del file)
         by_lang: dict = {}
         for i in groups:
@@ -447,7 +446,7 @@ class HomePage(QWidget):
         again = [i for i in groups if i.get("finished") or ((i.get("dur") or 0) > 60 and
                                                             (i.get("pos") or 0) >= (i.get("dur") or 0) * 0.95)]
         if again:
-            rows.append(("Da rivedere", [self._card(i, w_post) for i in again[:30]], ""))
+            rows.append(("Watch again", [self._card(i, w_post) for i in again[:30]], ""))
         for title, cards, sub in rows:
             if cards:
                 blocks.append(Row(title, cards, sub))
@@ -464,12 +463,12 @@ class HomePage(QWidget):
 
     def menu(self, it, gpos):
         m = QMenu(self)
-        m.addAction("Riproduci", lambda: self.play_item.emit(it))
-        m.addAction("Dettagli", lambda: self.open_item.emit(it))
+        m.addAction("Play", lambda: self.play_item.emit(it))
+        m.addAction("Details", lambda: self.open_item.emit(it))
         if it.get("dur"):
-            m.addAction("Ricomincia dall'inizio", lambda: self.play_item.emit({**it, "restart": True}))
-        m.addAction("Togli dalla mia lista" if it.get("fav") else "Aggiungi alla mia lista",
+            m.addAction("Start from the beginning", lambda: self.play_item.emit({**it, "restart": True}))
+        m.addAction("Remove from my list" if it.get("fav") else "Add to my list",
                     lambda: history.update_meta(it["url"], {"fav": not it.get("fav"), "fav_t": time.time()}))
         m.addSeparator()
-        m.addAction("Rimuovi", lambda: history.remove(it["url"]))
+        m.addAction("Remove", lambda: history.remove(it["url"]))
         m.exec(gpos)

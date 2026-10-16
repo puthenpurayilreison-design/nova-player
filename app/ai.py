@@ -183,7 +183,7 @@ def sync_subtitles(src, audio_index, sub_path, local=True, at=0.0, cancel=lambda
     """Restituisce (offset, rapporto, affidabilità, affidabilità_prima). Rapporto≠1 = sottotitoli per un altro fps."""
     cues = read_srt(sub_path)
     if len(cues) < 10:
-        raise RuntimeError("troppo poche frasi nei sottotitoli")
+        raise RuntimeError("too few lines in the subtitles")
     if local:
         start, length = 0.0, min(1800.0, max(300.0, cues[-1][1] + 60))
         ratios = (1.0, 25 / 23.976, 23.976 / 25, 25 / 24, 24 / 25)
@@ -192,7 +192,7 @@ def sync_subtitles(src, audio_index, sub_path, local=True, at=0.0, cancel=lambda
         ratios = (1.0,)
     speech = speech_intervals(src, audio_index, start, length, cancel)
     if sum(b - a for a, b in speech) < 20:
-        raise RuntimeError("nel pezzo analizzato non si sente parlare")
+        raise RuntimeError("no speech heard in the analysed part")
     return best_offset(speech, cues, start, length, ratios=ratios)
 
 
@@ -200,7 +200,7 @@ def extract_text_sub(src, sub_index, dest) -> str:
     r = _run([tool("ffmpeg"), "-hide_banner", "-v", "error", "-y", "-i", src, "-map", f"0:s:{sub_index}",
               "-f", "srt", str(dest)], timeout=600)
     if r.returncode != 0 or not Path(dest).exists():
-        raise RuntimeError("questi sottotitoli sono immagini (PGS/VobSub): non si possono sincronizzare")
+        raise RuntimeError("these subtitles are images (PGS/VobSub): they can't be synced")
     return str(dest)
 
 
@@ -210,7 +210,7 @@ def convert_sub(path, dest) -> str:
         return path
     r = _run([tool("ffmpeg"), "-hide_banner", "-v", "error", "-y", "-i", path, str(dest)], timeout=120)
     if r.returncode != 0:
-        raise RuntimeError("formato sottotitoli non supportato")
+        raise RuntimeError("unsupported subtitle format")
     return str(dest)
 
 

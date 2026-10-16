@@ -49,9 +49,9 @@ def lan_ip() -> str:
         s.close()
 
 
-REMOTE_HTML = """<!doctype html><html lang="it"><head><meta charset="utf-8">
+REMOTE_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#0e0e12"><title>NOVA · Telecomando</title>
+<meta name="theme-color" content="#0e0e12"><title>NOVA · Remote</title>
 <style>
 :root{--a:%ACCENT%;--bg:#0e0e12;--s:#1b1b22;--t:#f2f2f5;--m:#9a9aa8}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -76,10 +76,10 @@ button:active{transform:scale(.96);background:#26262f}
 <button onclick="c('seek',10)">+10s</button><button onclick="c('seek',60)">+1m</button></div>
 <div class="lbl">Volume</div>
 <div class="row three"><button onclick="c('vol',-5)">🔉</button><button onclick="c('mute')">🔇</button><button onclick="c('vol',5)">🔊</button></div>
-<div class="lbl">Film</div>
-<div class="row"><button onclick="c('audio')">Audio</button><button onclick="c('sub')">Sub</button>
+<div class="lbl">Movie</div>
+<div class="row"><button onclick="c('audio')">Audio</button><button onclick="c('sub')">Subs</button>
 <button onclick="c('fs')">⛶</button><button onclick="c('next')">⏭</button></div>
-<div id="off">NOVA non risponde: è aperto sul PC?</div>
+<div id="off">NOVA is not responding: is it open on the PC?</div>
 <script>
 const B=location.pathname.replace(/\\/$/,'');let drag=false,dur=0;
 function f(s){s=Math.max(0,s|0);const h=s/3600|0,m=(s%3600)/60|0,x=s%60;return(h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')}
@@ -87,7 +87,7 @@ function c(a,v){fetch(B+'/cmd?a='+a+(v!==undefined?'&v='+v:''),{method:'POST'}).
 const sk=document.getElementById('seek');sk.oninput=()=>{drag=true;document.getElementById('p').textContent=f(sk.value/1000*dur)};
 sk.onchange=()=>{c('goto',(sk.value/1000*dur).toFixed(1));drag=false};
 function u(){fetch(B+'/state').then(r=>r.json()).then(s=>{document.getElementById('off').style.display='none';
-document.getElementById('t').textContent=s.title||'Nessun video';dur=s.dur||0;
+document.getElementById('t').textContent=s.title||'Nothing playing';dur=s.dur||0;
 if(!drag){sk.value=dur?s.pos/dur*1000:0;document.getElementById('p').textContent=f(s.pos)}
 document.getElementById('d').textContent=f(dur);document.getElementById('pp').textContent=s.paused?'▶':'❚❚'})
 .catch(()=>{document.getElementById('off').style.display='block'})}
@@ -452,7 +452,7 @@ def tv_plans(m: dict) -> list[tuple[str, list[str]]]:
     plans = []
     if _nvenc_ok():
         if not hdr and not text and image is None:
-            plans.append(("GPU NVIDIA (tutto sulla scheda video)",
+            plans.append(("NVIDIA GPU (everything on the graphics card)",
                           base + ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"] + seek + ["-i", src] +
                           ["-map", "0:v:0", "-vf", f"scale_cuda={tw}:{th}:format=yuv420p"] + aud + nv + out))
         if hdr:
@@ -460,12 +460,12 @@ def tv_plans(m: dict) -> list[tuple[str, list[str]]]:
                   "color_trc=bt709:range=tv:format=yuv420p")
             if text:
                 pl += cpu_v[cpu_v.index(",setpts"):]
-            plans.append(mk("GPU NVIDIA (HDR con la GPU)",
+            plans.append(mk("NVIDIA GPU (HDR on the GPU)",
                             ["-init_hw_device", "vulkan=vk", "-filter_hw_device", "vk", "-hwaccel", "cuda"], pl, nv))
         plans.append(mk("GPU NVIDIA", ["-hwaccel", "cuda"], cpu_v, nv))
-        plans.append(mk("GPU NVIDIA (decodifica dal processore)", [], cpu_v, nv))
-    plans.append(mk("Processore (decodifica hardware)", ["-hwaccel", "auto"], cpu_v, x264))
-    plans.append(mk("Processore", [], cpu_v, x264))
+        plans.append(mk("NVIDIA GPU (decoding on the CPU)", [], cpu_v, nv))
+    plans.append(mk("CPU (hardware decoding)", ["-hwaccel", "auto"], cpu_v, x264))
+    plans.append(mk("CPU", [], cpu_v, x264))
     return plans
 
 

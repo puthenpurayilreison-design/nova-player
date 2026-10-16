@@ -48,14 +48,20 @@ def make_shortcuts():
         if r.returncode == 0:
             ok += 1
         else:
-            print(f"  ✗ collegamento {folder}: {r.stderr.strip().splitlines()[0] if r.stderr.strip() else r.returncode}")
+            print(f"  ✗ shortcut {folder}: {r.stderr.strip().splitlines()[0] if r.stderr.strip() else r.returncode}")
     if ok == 2:
-        print("  ✓ Collegamenti creati sul Desktop e nel menu Start")
+        print("  ✓ Shortcuts created on the Desktop and in the Start menu")
     else:
-        print("  Usa avvia.bat per aprire NOVA.")
+        print("  Use avvia.bat to open NOVA.")
 
 
 def main():
+    # console di Windows non UTF-8 (es. server di build): niente errori sui simboli della barra
+    for st in (sys.stdout, sys.stderr):
+        try:
+            st.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     if "--shortcut" in sys.argv:
         make_shortcuts()
         return
@@ -65,14 +71,14 @@ def main():
         # versione più recente di tutto; se un download non riesce si tiene quella già presente
         failed = [f for f in failed if f in missing()]
     if failed:
-        print("\nNON riuscito:", ", ".join(failed))
-        print("Controlla la connessione e rilancia setup.bat.")
+        print("\nFAILED:", ", ".join(failed))
+        print("Check your connection and run setup.bat again.")
         if "--force" in sys.argv:
-            input("Premi Invio per chiudere…")
+            input("Press Enter to close…")
         sys.exit(1)
-    print("\nComponenti pronti.")
+    print("\nComponents ready.")
     if "--force" in sys.argv:
-        input("Fatto. Premi Invio e riavvia NOVA…")
+        input("Done. Press Enter and restart NOVA…")
 
 
 if __name__ == "__main__":

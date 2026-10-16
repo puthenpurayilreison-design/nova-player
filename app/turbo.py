@@ -320,7 +320,7 @@ class Source:
                         raise _Abandon()
                 buf = r.read(min(READ_STEP, c.size - c.filled))
                 if not buf:
-                    raise IOError("blocco incompleto")
+                    raise IOError("incomplete block")
                 with self.cond:
                     c.data += buf
                     c.filled += len(buf)
@@ -527,11 +527,11 @@ class TurboServer(QObject):
         def go():
             info = probe(url, src.ua)
             if not info.get("ok"):
-                self.renewed.emit(sid, False, "Anche questo link non funziona." if info.get("expired")
-                                  else "Link non raggiungibile.")
+                self.renewed.emit(sid, False, "This link doesn't work either." if info.get("expired")
+                                  else "Link unreachable.")
                 return
             if info["size"] != src.total:
-                self.renewed.emit(sid, False, "È un file diverso (dimensione diversa): serve il link dello stesso film.")
+                self.renewed.emit(sid, False, "It's a different file (different size): you need the link to the same movie.")
                 return
             src.renew(url, info)
             self.renewed.emit(sid, True, "")

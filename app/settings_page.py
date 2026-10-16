@@ -20,17 +20,17 @@ from .widgets import Card, label, button, Segmented, Toggle, divider, IconButton
 
 ACCENTS = ["#22D3EE", "#7C6CFF", "#3EA6FF", "#00C2A8", "#3DD68C", "#F5B83D", "#FF7A45", "#FF7EB6", "#E5E5EA"]
 SHORTCUT_NAMES = {
-    "play_pause": "Play / Pausa", "seek_fwd": "Avanti 5 s", "seek_back": "Indietro 5 s",
-    "seek_fwd_big": "Avanti 1 min", "seek_back_big": "Indietro 1 min", "fullscreen": "Schermo intero",
-    "mute": "Muto", "stats": "Statistiche", "next_audio": "Traccia audio successiva",
-    "next_sub": "Sottotitoli successivi", "speed_up": "Più veloce", "speed_down": "Più lento",
-    "ab_loop": "Loop A-B", "pip": "Picture-in-picture", "cinema": "Modalità cinema", "cam": "Migliora video di bassa qualità",
-    "sub_search": "Cerca nei sottotitoli",
+    "play_pause": "Play / Pause", "seek_fwd": "Forward 5 s", "seek_back": "Back 5 s",
+    "seek_fwd_big": "Forward 1 min", "seek_back_big": "Back 1 min", "fullscreen": "Full screen",
+    "mute": "Mute", "stats": "Statistics", "next_audio": "Next audio track",
+    "next_sub": "Next subtitles", "speed_up": "Faster", "speed_down": "Slower",
+    "ab_loop": "Loop A-B", "pip": "Picture-in-picture", "cinema": "Cinema mode", "cam": "Improve low-quality video",
+    "sub_search": "Search the subtitles",
 }
-SECTIONS = [("appearance", "palette", "Aspetto"), ("player", "player", "Player"), ("audio", "audio", "Audio"), ("library", "library", "Libreria"),
+SECTIONS = [("appearance", "palette", "Appearance"), ("player", "player", "Player"), ("audio", "audio", "Audio"), ("library", "library", "Library"),
             ("stream", "globe", "Streaming"),
-            ("downloads", "download", "Download"), ("torrent", "magnet", "Torrent"),
-            ("shortcuts", "keyboard", "Scorciatoie"), ("system", "wrench", "Sistema")]
+            ("downloads", "download", "Downloads"), ("torrent", "magnet", "Torrent"),
+            ("shortcuts", "keyboard", "Shortcuts"), ("system", "wrench", "System")]
 NOWIN = 0x08000000 if sys.platform == "win32" else 0
 
 
@@ -127,8 +127,8 @@ def spin(val, lo, hi, step=1, suffix="", dbl=False):
 
 def fmt_default(v):
     if isinstance(v, bool):
-        return "Attivo" if v else "Spento"
-    labels = {"midnight": "Midnight", "full": "Complete", "normal": "Normale", "max": "Massima", "ratio": "Ratio",
+        return "On" if v else "Off"
+    labels = {"midnight": "Midnight", "full": "Full", "normal": "Normal", "max": "Maximum", "ratio": "Ratio",
               "2160": "4K", "mkv": "MKV"}
     return labels.get(str(v), str(v) if len(str(v)) < 40 else str(v)[:37] + "…")
 
@@ -168,7 +168,7 @@ class Row(QWidget):
         show = self.sec is not None and settings.get(self.sec, self.key) != DEFAULTS[self.sec][self.key]
         self.reset.setVisible(show)
         if self.sec:
-            self.reset.setToolTip(f"Ripristina il consigliato: {fmt_default(DEFAULTS[self.sec][self.key])}")
+            self.reset.setToolTip(f"Restore the recommended value: {fmt_default(DEFAULTS[self.sec][self.key])}")
         if not show and self.sec:
             # tiene lo spazio, così i controlli restano allineati
             self.reset.setVisible(False)
@@ -231,10 +231,10 @@ class SettingsPage(QWidget):
         nv = QVBoxLayout(nav)
         nv.setContentsMargins(theme.s(20), theme.s(26), theme.s(8), theme.s(20))
         nv.setSpacing(4)
-        nv.addWidget(label("Impostazioni", "pageTitle"))
+        nv.addWidget(label("Settings", "pageTitle"))
         nv.addSpacing(8)
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Cerca un'impostazione…")
+        self.search.setPlaceholderText("Search a setting…")
         self.search.setClearButtonEnabled(True)
         self.search.textChanged.connect(self._filter)
         nv.addWidget(self.search)
@@ -270,7 +270,7 @@ class SettingsPage(QWidget):
         self.rows: list[Row] = []
         for key, ic, name in SECTIONS:
             getattr(self, f"_s_{key}")(self._section(key, ic, name))
-        self.no_results = label("Nessuna impostazione trovata.", "muted")
+        self.no_results = label("No settings found.", "muted")
         self.no_results.setAlignment(Qt.AlignCenter)
         self.no_results.hide()
         self.root.addWidget(self.no_results)
@@ -415,10 +415,10 @@ class SettingsPage(QWidget):
         cur = settings.get(sec, key)
         l = label(cur if len(cur) < 40 else "…" + cur[-38:], "muted")
         l.setToolTip(cur)
-        b = button("Scegli…", None, "folder")
+        b = button("Choose…", None, "folder")
 
         def pick():
-            d = QFileDialog.getExistingDirectory(self, "Scegli cartella", settings.get(sec, key))
+            d = QFileDialog.getExistingDirectory(self, "Choose folder", settings.get(sec, key))
             if d:
                 Path(d).mkdir(parents=True, exist_ok=True)
                 self.set(sec, key, d, rebuild=True)
@@ -442,7 +442,7 @@ class SettingsPage(QWidget):
             c.clicked.connect(lambda _=False, k=k: self._pick_theme(k))
             g.addWidget(c)
         g.addStretch()
-        self.add(v, "Tema", "Palette completa dell'app. Il colore d'accento si può cambiare sotto.", grid,
+        self.add(v, "Theme", "Full app palette. The accent colour can be changed below.", grid,
                  "appearance", "theme", wide=True)
         sw = QWidget()
         h = QHBoxLayout(sw)
@@ -453,26 +453,24 @@ class SettingsPage(QWidget):
             s = Swatch(c, c.lower() == acc.lower())
             s.clicked.connect(lambda _=False, c=c: self.set("appearance", "accent", c))
             h.addWidget(s)
-        custom = IconButton("plus", "Colore personalizzato", 30, 16)
+        custom = IconButton("plus", "Custom colour", 30, 16)
 
         def pick():
-            col = QColorDialog.getColor(QColor(acc), self, "Colore d'accento")
+            col = QColorDialog.getColor(QColor(acc), self, "Accent colour")
             if col.isValid():
                 self.set("appearance", "accent", col.name())
         custom.clicked.connect(pick)
         h.addWidget(custom)
-        self.add(v, "Colore d'accento", "Pulsanti, barre e dettagli evidenziati.", sw, "appearance", "accent")
-        self.add(v, "Animazioni", "Complete: più ricche, con rimbalzo. Minime: solo dissolvenze rapide. "
-                 "Nessuna: tutto istantaneo (consigliato su PC lenti).",
-                 self.seg("appearance", "animations", [("full", "Complete"), ("balanced", "Bilanciate"),
-                                                       ("minimal", "Minime"), ("none", "Nessuna")]),
+        self.add(v, "Accent colour", "Buttons, bars and highlighted details.", sw, "appearance", "accent")
+        self.add(v, "Animations", "Full: richer, with bounce. Minimal: quick fades only. None: everything instant (recommended on slow PCs).",
+                 self.seg("appearance", "animations", [("full", "Full"), ("balanced", "Balanced"),
+                                                       ("minimal", "Minimal"), ("none", "None")]),
                  "appearance", "animations")
-        self.add(v, "Animazione all'avvio", "Il logo NOVA si accende per un secondo quando apri l'app "
-                 "(non compare se apri direttamente un file).", self.tog("appearance", "intro"), "appearance", "intro")
-        self.add(v, "Densità", "Quanto spazio c'è tra gli elementi.",
-                 self.seg("appearance", "density", [("compact", "Compatta"), ("normal", "Normale"),
-                                                    ("spacious", "Spaziosa")]), "appearance", "density")
-        self.add(v, "Dimensione testo", "",
+        self.add(v, "Startup animation", "The NOVA logo lights up for a second when you open the app (not shown when you open a file directly).", self.tog("appearance", "intro"), "appearance", "intro")
+        self.add(v, "Density", "How much space there is between elements.",
+                 self.seg("appearance", "density", [("compact", "Compact"), ("normal", "Normal"),
+                                                    ("spacious", "Spacious")]), "appearance", "density")
+        self.add(v, "Text size", "",
                  self.seg("appearance", "font_scale", [("0.9", "90%"), ("1.0", "100%"), ("1.1", "110%"),
                                                        ("1.25", "125%")], float), "appearance", "font_scale")
 
@@ -481,31 +479,23 @@ class SettingsPage(QWidget):
         self.set("appearance", "theme", k)
 
     def _s_player(self, v):
-        self.add(v, "Decodifica hardware", "La GPU decodifica il video: indispensabile per 4K HEVC/AV1 senza scatti.",
+        self.add(v, "Hardware decoding", "The GPU decodes the video: essential for 4K HEVC/AV1 without stutter.",
                  self.tog("player", "hwdec"), "player", "hwdec")
-        self.add(v, "Movimento fluido", "Allinea il video al refresh del monitor (60/144 Hz): niente micro-scatti "
-                 "e niente judder nei film a 24 fps.", self.tog("player", "smooth"), "player", "smooth")
-        self.add(v, "Refresh automatico per i film", "Porta il monitor a un multiplo esatto dei fps del film "
-                 "(200 → 144 Hz per i 24 fps): movimento perfettamente regolare. Ogni cambio di refresh fa diventare "
-                 "lo schermo nero 1-2 secondi: «Solo a schermo intero» lo fa solo entrando e uscendo dal film a "
-                 "schermo intero, mai quando chiudi l'app o lavori in finestra.",
-                 self.seg("player", "refresh_mode", [("fullscreen", "Solo a schermo intero"), ("always", "Sempre"),
-                                                     ("off", "Mai")]), "player", "refresh_mode")
-        self.add(v, "RTX Super Resolution", "Sui video piccoli (720p o meno) la GPU NVIDIA li ingrandisce con l'AI: "
-                 "più nitidi sul monitor. Attiva anche Pannello di controllo NVIDIA › Regola impostazioni immagine "
-                 "video › Miglioramento video RTX › Super Resolution.", self.tog("player", "rtx_vsr"), "player", "rtx_vsr")
-        self.add(v, "Colori dal film", "La barra di avanzamento e il tasto play prendono il colore del film che "
-                 "stai guardando.", self.tog("player", "film_colors"), "player", "film_colors")
-        self.add(v, "Qualità immagine", "Massima: scaler più nitido e debanding. Se il video scatta, prova "
-                 "Bilanciata.", self.seg("player", "quality", [("max", "Massima"), ("balanced", "Bilanciata"),
-                                                               ("saver", "Risparmio")]), "player", "quality")
-        self.add(v, "Riprendi da dove eri", "Ogni video riparte dal punto in cui l'hai lasciato.",
+        self.add(v, "Smooth motion", "Aligns the video to the monitor refresh (60/144 Hz): no micro-stutter and no judder in 24 fps movies.", self.tog("player", "smooth"), "player", "smooth")
+        self.add(v, "Automatic refresh for movies", "Switches the monitor to an exact multiple of the movie's fps (e.g. 144 Hz for 24 fps): perfectly smooth motion. Each refresh change turns the screen black for 1-2 seconds: «Full screen only» does it only when entering and leaving a full-screen movie, never when you close the app or work in a window.",
+                 self.seg("player", "refresh_mode", [("fullscreen", "Full screen only"), ("always", "Always"),
+                                                     ("off", "Never")]), "player", "refresh_mode")
+        self.add(v, "RTX Super Resolution", "On small videos (720p or less) the NVIDIA GPU upscales them with AI: sharper on the monitor. Also turn on NVIDIA Control Panel › Adjust video image settings › RTX video enhancement › Super Resolution.", self.tog("player", "rtx_vsr"), "player", "rtx_vsr")
+        self.add(v, "Colours from the movie", "The progress bar and the play button take the colour of the movie you're watching.", self.tog("player", "film_colors"), "player", "film_colors")
+        self.add(v, "Picture quality", "Maximum: sharpest scaler and debanding. If the video stutters, try Balanced.", self.seg("player", "quality", [("max", "Maximum"), ("balanced", "Balanced"),
+                                                               ("saver", "Saver")]), "player", "quality")
+        self.add(v, "Resume where you left off", "Every video restarts from the point where you left it.",
                  self.tog("player", "resume"), "player", "resume")
-        self.add(v, "Lingue audio preferite", "Codici separati da virgola, in ordine di preferenza (es. ita,eng).",
-                 self.text("player", "audio_lang", "ita,eng"), "player", "audio_lang")
-        self.add(v, "Lingue sottotitoli preferite", "Lascia vuoto per non attivarli automaticamente.",
+        self.add(v, "Preferred audio languages", "Comma-separated codes, in order of preference (e.g. eng,ita).",
+                 self.text("player", "audio_lang", "eng,ita"), "player", "audio_lang")
+        self.add(v, "Preferred subtitle languages", "Leave empty to not turn them on automatically.",
                  self.text("player", "sub_lang", "ita"), "player", "sub_lang")
-        self.add(v, "Dimensione sottotitoli", "", self.num("player", "sub_size", 20, 90), "player", "sub_size")
+        self.add(v, "Subtitle size", "", self.num("player", "sub_size", 20, 90), "player", "sub_size")
         cw = QWidget()
         ch = QHBoxLayout(cw)
         ch.setContentsMargins(0, 0, 0, 0)
@@ -514,8 +504,8 @@ class SettingsPage(QWidget):
             s = Swatch(c, settings.get("player", "sub_color").upper() == c)
             s.clicked.connect(lambda _=False, c=c: self.set("player", "sub_color", c, rebuild=True))
             ch.addWidget(s)
-        self.add(v, "Colore sottotitoli", "", cw, "player", "sub_color")
-        self.add(v, "Sfondo dietro ai sottotitoli", "Riquadro scuro per leggerli meglio sulle scene chiare.",
+        self.add(v, "Subtitle colour", "", cw, "player", "sub_color")
+        self.add(v, "Background behind subtitles", "Dark box to read them better on bright scenes.",
                  self.tog("player", "sub_background"), "player", "sub_background")
 
     def _s_audio(self, v):
@@ -528,23 +518,15 @@ class SettingsPage(QWidget):
             cb.setItemData(cb.count() - 1, desc, Qt.ToolTipRole)
         cb.setCurrentIndex(max(0, cb.findData(cur)))
         cb.currentIndexChanged.connect(lambda i: self.set("audio", "profile", cb.itemData(i)))
-        self.add(v, "Suono predefinito", "Automatico: Cinema in cuffia sulle cuffie (es. Soundcore), voci più chiare "
-                 "sulle casse del monitor, originale sul resto. Dal pannello Audio del player puoi sceglierne uno "
-                 "diverso per ogni uscita, e viene ricordato.", cb, "audio", "profile")
-        self.add(v, "Uscita esclusiva", "NOVA usa la scheda audio da sola: salta il mixer di Windows e gli effetti "
-                 "come FxSound (suono originale, latenza minima). Mentre guardi, le altre app restano mute.",
+        self.add(v, "Default sound", "Automatic: Cinema in headphones on headphones, clearer voices on monitor speakers, original on everything else. From the player's Audio panel you can pick a different one for each output, and it's remembered.", cb, "audio", "profile")
+        self.add(v, "Exclusive output", "NOVA uses the sound card on its own: it skips the Windows mixer and effects like FxSound (original sound, minimal latency). While you watch, other apps are muted.",
                  self.tog("audio", "exclusive"), "audio", "exclusive")
-        self.add(v, "Sottotitoli anche con audio inglese", "Attivo: i sottotitoli inglesi compaiono anche quando "
-                 "l'audio è già in inglese. Spento: solo quando l'audio è in un'altra lingua.",
+        self.add(v, "Subtitles even with English audio", "On: English subtitles show up even when the audio is already English. Off: only when the audio is in another language.",
                  self.tog("player", "subs_with_english_audio"), "player", "subs_with_english_audio")
-        self.add(v, "Ricorda per ogni film", "Traccia audio, sottotitoli, ritardo sottotitoli e volume scelti per un "
-                 "film vengono rimessi uguali quando lo riapri.",
+        self.add(v, "Remember for each movie", "Audio track, subtitles, subtitle delay and volume chosen for a movie are restored when you reopen it.",
                  self.tog("player", "remember_per_film"), "player", "remember_per_film")
-        self.add(v, "Volume uguale tra i film", "NOVA misura il volume di ogni film (standard EBU R128) e lo porta "
-                 "allo stesso livello: niente film bassissimi e altri che urlano. Si regola piano, senza salti, "
-                 "e ricorda il valore per ogni film.", self.tog("player", "loudness"), "player", "loudness")
-        self.add(v, "Ripresa intelligente", "Quando riapri un film riparte qualche secondo prima di dove eri "
-                 "(3 s dopo una pausa corta, fino a 25 s dopo giorni), così ritrovi il filo.",
+        self.add(v, "Same volume across movies", "NOVA measures the loudness of every movie (EBU R128 standard) and brings it to the same level: no more very quiet movies and others that shout. It adjusts gently, without jumps, and remembers the value for each movie.", self.tog("player", "loudness"), "player", "loudness")
+        self.add(v, "Smart resume", "When you reopen a movie it restarts a few seconds before where you were (3 s after a short pause, up to 25 s after days), so you pick up the thread.",
                  self.tog("player", "smart_resume"), "player", "smart_resume")
 
     def _s_library(self, v):
@@ -554,9 +536,9 @@ class SettingsPage(QWidget):
         h.setSpacing(6)
         e = QLineEdit(settings.get("library", "tmdb_key"))
         e.setEchoMode(QLineEdit.Password)
-        e.setPlaceholderText("API Key o Read Access Token")
+        e.setPlaceholderText("API Key or Read Access Token")
         e.setFixedWidth(240)
-        b = button("Verifica", None, "check")
+        b = button("Checking", None, "check")
 
         def save():
             from .tmdb import check_key
@@ -570,91 +552,80 @@ class SettingsPage(QWidget):
             self.toast.emit("TMDB", msg, "ok" if ok else "err")
         b.clicked.connect(save)
         e.returnPressed.connect(save)
-        link = button("Crea chiave", "ghost", "globe",
+        link = button("Create key", "ghost", "globe",
                       lambda: QDesktopServices.openUrl(QUrl("https://www.themoviedb.org/settings/api")))
         for x in (e, b, link):
             h.addWidget(x)
-        self.add(v, "Chiave TMDB", "Gratuita: account su themoviedb.org › Impostazioni › API. Serve per i poster "
-                 "ufficiali e i titoli «Nome (anno)» in Libreria e Home.", w, "library", "tmdb_key")
-        self.add(v, "Lingua dei titoli", "Inglese tiene i titoli originali dei film indiani; Italiano usa i titoli "
-                 "italiani quando esistono.",
-                 self.seg("library", "tmdb_lang", [("en-US", "Inglese"), ("it-IT", "Italiano")]),
+        self.add(v, "TMDB key", "Free: account on themoviedb.org › Settings › API. Used for official posters and «Name (year)» titles in Library and Home.", w, "library", "tmdb_key")
+        self.add(v, "Title language", "English keeps the original titles of Indian movies; other languages use local titles when they exist.",
+                 self.seg("library", "tmdb_lang", [("en-US", "English"), ("it-IT", "Italian")]),
                  "library", "tmdb_lang")
-        self.add(v, "Trova la sigla delle serie", "Confronta due episodi della stessa cartella e mostra «Salta intro». "
-                 "Usa anche i capitoli del file quando ci sono.", self.tog("library", "detect_intro"),
+        self.add(v, "Detect series intros", "Compares two episodes in the same folder and shows «Skip intro». Also uses the file's chapters when present.", self.tog("library", "detect_intro"),
                  "library", "detect_intro")
-        self.add(v, "Salta la sigla da solo", "Invece del pulsante, la sigla viene saltata automaticamente.",
+        self.add(v, "Skip the intro automatically", "Instead of the button, the intro is skipped automatically.",
                  self.tog("library", "skip_intro_auto"), "library", "skip_intro_auto")
-        self.add(v, "Episodio successivo", "A fine episodio di una serie propone il successivo (stessa cartella o "
-                 "Libreria) e parte da solo dopo 10 secondi.", self.tog("library", "next_episode"),
+        self.add(v, "Next episode", "At the end of an episode it suggests the next one (same folder or Library) and starts it after 10 seconds.", self.tog("library", "next_episode"),
                  "library", "next_episode")
 
     def _s_stream(self, v):
-        self.add(v, "Stream Turbo", "Scarica i link con più connessioni insieme: velocità piena, salti quasi "
-                 "istantanei e, se il link scade, riparte dallo stesso punto con un link nuovo.",
+        self.add(v, "Stream Turbo", "Downloads links with several connections at once: full speed, near-instant seeking and, if the link expires, it restarts from the same point with a new link.",
                  self.tog("stream", "turbo"), "stream", "turbo")
-        self.add(v, "Connessioni Stream Turbo", "16 consigliato. Se un sito blocca lo stream, prova 8 o 4.",
+        self.add(v, "Stream Turbo connections", "16 recommended. If a website blocks the stream, try 8 or 4.",
                  self.num("stream", "turbo_connections", 1, 16), "stream", "turbo_connections")
-        self.add(v, "Wi-Fi in modalità streaming", "Mentre guardi un film dalla rete, Windows smette di cercare reti "
-                 "Wi-Fi in background (blocca la connessione per qualche istante ogni minuto) e usa la modalità "
-                 "streaming della scheda. Tutto torna normale quando smetti di guardare.",
+        self.add(v, "Wi-Fi streaming mode", "While you watch a movie from the network, Windows stops scanning for Wi-Fi networks in the background (it freezes the connection for a moment every minute) and uses the adapter's streaming mode. Everything goes back to normal when you stop watching.",
                  self.tog("downloads", "wifi_streaming"), "downloads", "wifi_streaming")
-        self.add(v, "Qualità massima", "Per HLS/DASH e pagine video. 4K richiede almeno 25 Mbit/s di connessione.",
+        self.add(v, "Maximum quality", "For HLS/DASH and video pages. 4K needs at least a 25 Mbit/s connection.",
                  self.seg("stream", "max_height", [("2160", "4K"), ("1440", "1440p"), ("1080", "1080p"),
                                                    ("720", "720p")], int), "stream", "max_height")
-        self.add(v, "Cache in avanti", "Memoria per il buffer. Con il valore consigliato e 16 GB di RAM NOVA usa 2 GB (circa 3 minuti di 4K).",
+        self.add(v, "Forward cache", "Memory for the buffer. With the recommended value and 16 GB of RAM NOVA uses 2 GB (about 3 minutes of 4K).",
                  self.num("stream", "cache_mb", 64, 8192, 64, " MB"), "stream", "cache_mb")
-        self.add(v, "Cache all'indietro", "Per tornare indietro senza riscaricare.",
+        self.add(v, "Back cache", "To go back without downloading again.",
                  self.num("stream", "back_cache_mb", 0, 4096, 32, " MB"), "stream", "back_cache_mb")
-        self.add(v, "Pre-lettura", "Secondi di video scaricati in anticipo.",
+        self.add(v, "Read-ahead", "Seconds of video downloaded in advance.",
                  self.num("stream", "readahead_s", 5, 600, 5, " s"), "stream", "readahead_s")
-        self.add(v, "Durata massima cache", "", self.num("stream", "cache_secs", 10, 3600, 10, " s"),
+        self.add(v, "Maximum cache duration", "", self.num("stream", "cache_secs", 10, 3600, 10, " s"),
                  "stream", "cache_secs")
-        self.add(v, "User-Agent", "Solo se un sito blocca il player. Vuoto = predefinito.",
-                 self.text("stream", "user_agent", "predefinito"), "stream", "user_agent")
-        self.add(v, "Proxy HTTP", "Es. http://127.0.0.1:8080", self.text("stream", "proxy", "nessuno"),
+        self.add(v, "User-Agent", "Only if a website blocks the player. Empty = default.",
+                 self.text("stream", "user_agent", "default"), "stream", "user_agent")
+        self.add(v, "HTTP proxy", "e.g. http://127.0.0.1:8080", self.text("stream", "proxy", "none"),
                  "stream", "proxy")
 
     def _s_downloads(self, v):
-        self.add(v, "Cartella download", "", self.folder("downloads", "dir"), "downloads", "dir")
-        self.add(v, "Connessioni per file", "NOVA divide il file in parti scaricate insieme. Se un server rifiuta "
-                 "troppe connessioni, riprova da solo con meno.", self.num("downloads", "connections", 1, 32),
+        self.add(v, "Download folder", "", self.folder("downloads", "dir"), "downloads", "dir")
+        self.add(v, "Connections per file", "NOVA splits the file into parts downloaded together. If a server refuses too many connections, it retries by itself with fewer.", self.num("downloads", "connections", 1, 32),
                  "downloads", "connections")
-        self.add(v, "Download in parallelo", "Quanti file scaricare contemporaneamente.",
+        self.add(v, "Parallel downloads", "How many files to download at the same time.",
                  self.num("downloads", "parallel", 1, 10), "downloads", "parallel")
-        self.add(v, "Limite velocità", "0 = illimitato.", self.num("downloads", "limit_kb", 0, 10_000_000, 256, " KB/s"),
+        self.add(v, "Speed limit", "0 = unlimited.", self.num("downloads", "limit_kb", 0, 10_000_000, 256, " KB/s"),
                  "downloads", "limit_kb")
-        self.add(v, "Organizza per tipo", "Sposta i file finiti in Video / Audio / Altro.",
+        self.add(v, "Organise by type", "Moves finished files into Video / Audio / Other.",
                  self.tog("downloads", "organize"), "downloads", "organize")
-        self.add(v, "Rileva link copiati", "Quando copi un link o un magnet, NOVA ti propone cosa farci.",
+        self.add(v, "Detect copied links", "When you copy a link or a magnet, NOVA suggests what to do with it.",
                  self.tog("downloads", "clipboard"), "downloads", "clipboard")
-        self.add(v, "Priorità al film", "Mentre guardi un film dalla rete, gli altri download e torrent rallentano "
-                 "da soli, così il film non va mai in buffering.", self.tog("downloads", "player_priority"),
+        self.add(v, "Movie first", "While you watch a movie from the network, other downloads and torrents slow down by themselves, so the movie never buffers.", self.tog("downloads", "player_priority"),
                  "downloads", "player_priority")
-        self.add(v, "Riduci nella tray alla chiusura", "Con download attivi, chiudere la finestra non li ferma.",
+        self.add(v, "Minimise to tray on close", "With active downloads, closing the window doesn't stop them.",
                  self.tog("downloads", "tray_on_close"), "downloads", "tray_on_close")
 
     def _s_torrent(self, v):
-        self.add(v, "Cartella torrent", "", self.folder("torrent", "dir"), "torrent", "dir")
-        b = button("Apri porta", "primary", "check", self.open_firewall.emit)
-        self.add(v, "Porta nel firewall", "Fa arrivare i peer anche verso di te: è la cosa che più aumenta la "
-                 "velocità. Windows chiede conferma una volta.", b)
-        self.add(v, "Download sequenziale", "Spento = velocità massima. Si attiva da solo quando premi ▶ o usi "
-                 "Link istantaneo.", self.tog("torrent", "sequential"), "torrent", "sequential")
-        self.add(v, "Seeding dopo il download", "Quanto condividere prima di fermarsi.",
-                 self.seg("torrent", "seed_mode", [("off", "No"), ("ratio", "Ratio"), ("time", "Tempo")]),
+        self.add(v, "Torrent folder", "", self.folder("torrent", "dir"), "torrent", "dir")
+        b = button("Open port", "primary", "check", self.open_firewall.emit)
+        self.add(v, "Firewall port", "Lets peers connect to you too: it's what boosts speed the most. Windows asks for confirmation once.", b)
+        self.add(v, "Sequential download", "Off = maximum speed. It turns on by itself when you press ▶ or use Instant link.", self.tog("torrent", "sequential"), "torrent", "sequential")
+        self.add(v, "Seeding after download", "How much to share before stopping.",
+                 self.seg("torrent", "seed_mode", [("off", "No"), ("ratio", "Ratio"), ("time", "Time")]),
                  "torrent", "seed_mode")
-        self.add(v, "Ratio massimo", "1.0 = carichi quanto hai scaricato.",
+        self.add(v, "Maximum ratio", "1.0 = you upload as much as you downloaded.",
                  self.num("torrent", "seed_ratio", 0.1, 50, 0.1, "", dbl=True), "torrent", "seed_ratio")
-        self.add(v, "Tempo massimo di seed", "", self.num("torrent", "seed_minutes", 1, 10080, 10, " min"),
+        self.add(v, "Maximum seeding time", "", self.num("torrent", "seed_minutes", 1, 10080, 10, " min"),
                  "torrent", "seed_minutes")
-        self.add(v, "Limite download", "0 = illimitato.",
+        self.add(v, "Download limit", "0 = unlimited.",
                  self.num("torrent", "down_limit_kb", 0, 10_000_000, 256, " KB/s"), "torrent", "down_limit_kb")
-        self.add(v, "Limite upload", "0 = illimitato. Limitarlo troppo rallenta anche il download.",
+        self.add(v, "Upload limit", "0 = unlimited. Limiting it too much slows downloads too.",
                  self.num("torrent", "up_limit_kb", 0, 10_000_000, 64, " KB/s"), "torrent", "up_limit_kb")
-        self.add(v, "Porta di ascolto", "Cambiala solo se il tuo provider blocca la 6881.",
+        self.add(v, "Listening port", "Change it only if your provider blocks 6881.",
                  self.num("torrent", "port", 1024, 65535), "torrent", "port")
-        self.add(v, "Cifratura", "Cifra le connessioni con i peer quando possibile.",
+        self.add(v, "Encryption", "Encrypts connections with peers when possible.",
                  self.tog("torrent", "encryption"), "torrent", "encryption")
 
     def _s_shortcuts(self, v):
@@ -671,8 +642,7 @@ class SettingsPage(QWidget):
             ed.setFixedWidth(150)
             ed.editingFinished.connect(lambda k=k, ed=ed: self.set("shortcuts", k, ed.keySequence().toString()))
             grid.addWidget(ed, r, c * 2 + 1)
-        row = Row(self, "Tasti", "Clicca un campo e premi il nuovo tasto. Doppio clic sul video: schermo intero · "
-                  "rotella: volume · Esc: esci.", QWidget())
+        row = Row(self, "Keys", "Click a field and press the new key. Double-click on the video: full screen · wheel: volume · Esc: exit.", QWidget())
         self.rows.append(row)
         v.addWidget(row)
         v.addWidget(g)
@@ -683,42 +653,39 @@ class SettingsPage(QWidget):
                 settings.set("shortcuts", k, val, notify=False)
             self.changed.emit("shortcuts")
             QTimer.singleShot(0, self.build)
-        self.add(v, "Ripristina scorciatoie", "Torna ai tasti predefiniti (stile VLC/mpv).",
-                 button("Ripristina", None, "retry", reset))
+        self.add(v, "Reset shortcuts", "Back to the default keys (VLC/mpv style).",
+                 button("Reset", None, "retry", reset))
 
     def _s_system(self, v):
         from .config import REPO_URL, DONATE_URL, CRYPTO
         from PySide6.QtGui import QDesktopServices
         from PySide6.QtCore import QUrl
         gh = button("GitHub", None, "globe", lambda: QDesktopServices.openUrl(QUrl(REPO_URL)))
-        self.add(v, f"NOVA {VERSION}", "Gratis e open source (licenza GPL-3.0). Codice, novità e segnalazione dei "
-                 "problemi su GitHub.", gh)
+        self.add(v, f"NOVA {VERSION}", "Free and open source (GPL-3.0 license). Code, news and bug reports on GitHub.", gh)
         if DONATE_URL:
-            d = button("Supporta NOVA", "primary", "sparkle", lambda: QDesktopServices.openUrl(QUrl(DONATE_URL)))
-            self.add(v, "Ti piace NOVA?", "È gratis e senza pubblicità: se vuoi, offrimi un caffè per farla crescere.", d)
+            d = button("Support NOVA", "primary", "sparkle", lambda: QDesktopServices.openUrl(QUrl(DONATE_URL)))
+            self.add(v, "Do you like NOVA?", "It's free and ad-free: if you like, buy me a coffee to help it grow.", d)
         for name, addr in (CRYPTO or {}).items():
             row = QWidget()
             rh = QHBoxLayout(row)
             rh.setContentsMargins(0, 0, 0, 0)
-            rh.addWidget(button("Copia", None, "clipboard",
+            rh.addWidget(button("Copy", None, "clipboard",
                                 lambda _=False, a=addr: (QApplication.clipboard().setText(a),
-                                                         self.toast.emit("Indirizzo copiato", a, "ok"))))
+                                                         self.toast.emit("Address copied", a, "ok"))))
             rh.addWidget(button("QR", None, "phone", lambda _=False, n=name, a=addr: self._show_qr(n, a)))
-            self.add(v, f"Dona in {name}", addr, row)
-        self.add(v, "Crediti", "Questo prodotto usa l'API di TMDB ma non è approvato né certificato da TMDB. "
-                 "Motore video mpv, ffmpeg, aria2, libtorrent, yt-dlp, Qt: grazie ai loro autori.",
+            self.add(v, f"Donate in {name}", addr, row)
+        self.add(v, "Credits", "This product uses the TMDB API but is not endorsed or certified by TMDB. Video engine mpv, ffmpeg, aria2, libtorrent, yt-dlp, Qt: thanks to their authors.",
                  label("TMDB", "faint"))
-        b = button("Registra", None, "check")
-        b.clicked.connect(lambda: self.toast.emit("Integrazione Windows",
+        b = button("Register", None, "check")
+        b.clicked.connect(lambda: self.toast.emit("Windows integration",
                                                   winutil.register_associations(VIDEO_EXT, AUDIO_EXT), "ok"))
-        self.add(v, "Apri con NOVA", "NOVA in 'Apri con', nel menu del tasto destro, per i link magnet e i .torrent.", b)
+        self.add(v, "Open with NOVA", "NOVA in 'Open with', in the right-click menu, for magnet links and .torrent files.", b)
         t = Toggle(winutil.is_autostart())
         t.toggled.connect(lambda on: winutil.set_autostart(on))
-        self.add(v, "Avvia con Windows", "Parte nella tray, così i download riprendono da soli.", t)
-        self.add(v, "Aggiorna componenti", "Scarica le ultime versioni di mpv, aria2, ffmpeg e yt-dlp. "
-                 "Si applicano al prossimo avvio.", button("Aggiorna", None, "retry", self._update_components))
-        self.add(v, "Aggiorna yt-dlp", "Da fare se un sito video smette di funzionare.",
-                 button("Aggiorna", None, "retry", self._update_ytdlp))
+        self.add(v, "Start with Windows", "Starts in the tray, so downloads resume by themselves.", t)
+        self.add(v, "Update components", "Downloads the latest versions of mpv, aria2, ffmpeg and yt-dlp. Applied at the next start.", button("Update", None, "retry", self._update_components))
+        self.add(v, "Update yt-dlp", "Do it if a video website stops working.",
+                 button("Update", None, "retry", self._update_ytdlp))
         w = QWidget()
         wv = QVBoxLayout(w)
         wv.setContentsMargins(0, 0, 0, 0)
@@ -726,57 +693,56 @@ class SettingsPage(QWidget):
         ed.setPlaceholderText("interpolation=yes\ntscale=oversample")
         ed.setFixedHeight(96)
         wv.addWidget(ed)
-        ap = button("Applica", None, "check", lambda: self.set("advanced", "mpv_conf", ed.toPlainText()))
+        ap = button("Apply", None, "check", lambda: self.set("advanced", "mpv_conf", ed.toPlainText()))
         rr = QHBoxLayout()
         rr.addStretch()
         rr.addWidget(ap)
         wv.addLayout(rr)
-        self.add(v, "Opzioni mpv personalizzate", "Per esperti: una per riga, formato mpv.conf.", w,
+        self.add(v, "Custom mpv options", "For experts: one per line, mpv.conf format.", w,
                  "advanced", "mpv_conf", wide=True)
         row = QWidget()
         rh = QHBoxLayout(row)
         rh.setContentsMargins(0, 0, 0, 0)
 
         def exp():
-            f, _ = QFileDialog.getSaveFileName(self, "Esporta impostazioni", "nova-impostazioni.json", "JSON (*.json)")
+            f, _ = QFileDialog.getSaveFileName(self, "Export settings", "nova-settings.json", "JSON (*.json)")
             if f:
                 settings.export(f)
-                self.toast.emit("Impostazioni esportate", f, "ok")
+                self.toast.emit("Settings exported", f, "ok")
 
         def imp():
-            f, _ = QFileDialog.getOpenFileName(self, "Importa impostazioni", "", "JSON (*.json)")
+            f, _ = QFileDialog.getOpenFileName(self, "Import settings", "", "JSON (*.json)")
             if f:
                 try:
                     settings.import_(f)
                     self.changed.emit("*")
                     self.appearance_changed.emit()
                 except Exception as ex:
-                    self.toast.emit("File non valido", str(ex), "err")
+                    self.toast.emit("Invalid file", str(ex), "err")
 
         def reset():
             settings.reset()
             self.changed.emit("*")
             self.appearance_changed.emit()
-        rh.addWidget(button("Esporta", None, "up", exp))
-        rh.addWidget(button("Importa", None, "down", imp))
-        rh.addWidget(button("Ripristina tutto", "danger", "retry", reset))
-        self.add(v, "Backup impostazioni", "Esporta su file, importa su un altro PC o torna ai consigliati.", row)
+        rh.addWidget(button("Export", None, "up", exp))
+        rh.addWidget(button("Import", None, "down", imp))
+        rh.addWidget(button("Reset everything", "danger", "retry", reset))
+        self.add(v, "Settings backup", "Export to a file, import on another PC or go back to the recommended values.", row)
         row2 = QWidget()
         rh2 = QHBoxLayout(row2)
         rh2.setContentsMargins(0, 0, 0, 0)
-        rh2.addWidget(button("Crea backup", None, "up", self._backup))
-        rh2.addWidget(button("Ripristina…", None, "down", self._restore))
-        self.add(v, "Backup completo", "Un unico file .zip con impostazioni, libreria, punti di ripresa, scelte audio "
-                 "per film, poster e statistiche. Utile se cambi PC o reinstalli Windows.", row2)
-        self.add(v, "Log e diagnostica", str(DATA / "logs"),
-                 button("Apri cartella", None, "folder",
+        rh2.addWidget(button("Create backup", None, "up", self._backup))
+        rh2.addWidget(button("Restore…", None, "down", self._restore))
+        self.add(v, "Full backup", "A single .zip file with settings, library, resume points, audio choices per movie, posters and statistics. Useful if you change PC or reinstall Windows.", row2)
+        self.add(v, "Logs and diagnostics", str(DATA / "logs"),
+                 button("Open folder", None, "folder",
                         lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(DATA / "logs")))))
 
     # ---------- backup completo ----------
     def _backup(self):
         import time as _t
         import zipfile
-        f, _ = QFileDialog.getSaveFileName(self, "Backup completo di NOVA",
+        f, _ = QFileDialog.getSaveFileName(self, "Full NOVA backup",
                                            f"NOVA-backup-{_t.strftime('%Y-%m-%d')}.zip", "Zip (*.zip)")
         if not f:
             return
@@ -790,36 +756,36 @@ class SettingsPage(QWidget):
                     for p in (DATA / folder).glob("*"):
                         if p.is_file():
                             z.write(p, f"{folder}/{p.name}")
-            self.toast.emit("Backup creato", f, "ok")
+            self.toast.emit("Backup created", f, "ok")
         except OSError as e:
-            self.toast.emit("Backup non riuscito", str(e), "err")
+            self.toast.emit("Backup failed", str(e), "err")
 
     def _restore(self):
         import zipfile
-        f, _ = QFileDialog.getOpenFileName(self, "Ripristina backup di NOVA", "", "Zip (*.zip)")
+        f, _ = QFileDialog.getOpenFileName(self, "Restore NOVA backup", "", "Zip (*.zip)")
         if not f:
             return
         try:
             with zipfile.ZipFile(f) as z:
                 names = z.namelist()
                 if "settings.json" not in names and "history.json" not in names:
-                    raise ValueError("questo zip non è un backup di NOVA")
+                    raise ValueError("this zip is not a NOVA backup")
                 for n in names:
                     if n.startswith(("/", "..")) or ".." in n.split("/"):
                         continue
                     if n in ("settings.json", "history.json", "stats.json", "tmdb_cache.json", "downloads.json") \
                             or n.startswith(("covers/", "posters/")):
                         z.extract(n, DATA)
-            self.toast.emit("Backup ripristinato", "Riavvia NOVA per vedere tutto com'era.", "ok")
+            self.toast.emit("Backup restored", "Restart NOVA to see everything as it was.", "ok")
         except Exception as e:
-            self.toast.emit("Ripristino non riuscito", str(e), "err")
+            self.toast.emit("Restore failed", str(e), "err")
 
     # ---------- aggiornamenti ----------
     def _show_qr(self, name, addr):
         from PySide6.QtWidgets import QDialog, QVBoxLayout
         from .player import qr_pixmap
         d = QDialog(self)
-        d.setWindowTitle(f"Dona in {name}")
+        d.setWindowTitle(f"Donate in {name}")
         lay = QVBoxLayout(d)
         q = label("")
         q.setPixmap(qr_pixmap(addr, 260))
@@ -831,18 +797,18 @@ class SettingsPage(QWidget):
 
     def _update_components(self):
         from . import deps
-        self.toast.emit("Aggiornamento componenti", "Scarico mpv, aria2, ffmpeg e yt-dlp in background…", "info")
+        self.toast.emit("Updating components", "Downloading mpv, aria2, ffmpeg and yt-dlp in the background…", "info")
 
         def go():
             failed = deps.ensure(force=True, log=lambda *_: None)
             if failed:
-                self._toast_later("Aggiornamento incompleto", "Non riuscito: " + ", ".join(failed), "err")
+                self._toast_later("Update incomplete", "Failed: " + ", ".join(failed), "err")
             else:
-                self._toast_later("Componenti aggiornati", "Riavvia NOVA per usare le nuove versioni.", "ok")
+                self._toast_later("Components updated", "Restart NOVA to use the new versions.", "ok")
         threading.Thread(target=go, daemon=True).start()
 
     def _update_ytdlp(self):
-        self.toast.emit("yt-dlp", "Aggiornamento in corso…", "info")
+        self.toast.emit("yt-dlp", "Updating…", "info")
 
         def go():
             ok = True
@@ -854,5 +820,5 @@ class SettingsPage(QWidget):
                 r = subprocess.run([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"], capture_output=True,
                                    text=True, creationflags=NOWIN)
                 ok = ok and r.returncode == 0
-            self._toast_later("yt-dlp", "Aggiornato." if ok else "Aggiornamento non riuscito.", "ok" if ok else "err")
+            self._toast_later("yt-dlp", "Updated." if ok else "Update failed.", "ok" if ok else "err")
         threading.Thread(target=go, daemon=True).start()

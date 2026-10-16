@@ -35,8 +35,8 @@ CUT_WORDS = [
 ]
 CUT = re.compile(r"(?i)(?:^|[ ._\-\(\[])(?:" + "|".join(CUT_WORDS) + r")(?=$|[ ._\-\)\]])")
 LANGS = {"malayalam": "Malayalam", "mal": "Malayalam", "tamil": "Tamil", "tam": "Tamil", "telugu": "Telugu",
-         "tel": "Telugu", "hindi": "Hindi", "hin": "Hindi", "kannada": "Kannada", "english": "Inglese",
-         "eng": "Inglese", "italian": "Italiano", "ita": "Italiano", "bengali": "Bengali", "marathi": "Marathi"}
+         "tel": "Telugu", "hindi": "Hindi", "hin": "Hindi", "kannada": "Kannada", "english": "English",
+         "eng": "English", "italian": "Italian", "ita": "Italian", "bengali": "Bengali", "marathi": "Marathi"}
 THEATRE = re.compile(r"(?i)\b(hdcam|hq[ ._-]?cam|camrip|cam|hdtc|tc|telesync|telecine|hdts|ts|ts[ ._-]?rip|"
                      r"hq[ ._-]?pre[ ._-]?dvd|pre[ ._-]?dvd|predvd|pdvd|s[ ._-]?print|hq[ ._-]?s[ ._-]?print)\b")
 

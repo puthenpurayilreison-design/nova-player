@@ -116,11 +116,10 @@ class Loader(QObject):
             else:
                 codec = (track.get("codec") or "").lower()
                 if codec and codec not in TEXT_CODECS:
-                    self.done.emit(None, "Questi sottotitoli sono immagini (Blu-ray/DVD): non contengono testo da cercare.")
+                    self.done.emit(None, "These subtitles are images (Blu-ray/DVD): they have no text to search.")
                     return
                 if not os.path.isfile(src):
-                    self.done.emit(None, "La ricerca funziona con i file sul PC e con i sottotitoli esterni "
-                                         "(per i link servirebbe scaricare tutto il film).")
+                    self.done.emit(None, "Search works with files on the PC and external subtitles (for links it would need to download the whole movie).")
                     return
                 idx = track.get("ff-index")
                 mp = f"0:{idx}" if idx is not None else "0:s:0"
@@ -132,12 +131,12 @@ class Loader(QObject):
                                    capture_output=True, timeout=600, creationflags=flags)
                 cues = parse(r.stdout.decode("utf-8", "replace"))
             if not cues:
-                self.done.emit(None, "Non ho trovato testo in questi sottotitoli.")
+                self.done.emit(None, "No text found in these subtitles.")
                 return
             _CACHE[key] = cues
             self.done.emit(cues, "")
         except Exception as e:
-            self.done.emit(None, f"Non riesco a leggere i sottotitoli: {e}")
+            self.done.emit(None, f"Can't read the subtitles: {e}")
 
 
 class SubSearch(QFrame):
@@ -164,11 +163,11 @@ class SubSearch(QFrame):
         ic.setPixmap(icons.pixmap("search", theme.text2, 18))
         h.addWidget(ic)
         self.edit = QLineEdit()
-        self.edit.setPlaceholderText("Cerca una frase nei sottotitoli…")
+        self.edit.setPlaceholderText("Search a sentence in the subtitles…")
         self.edit.setClearButtonEnabled(True)
         h.addWidget(self.edit, 1)
         v.addLayout(h)
-        self.info = label("Leggo i sottotitoli…", "faint")
+        self.info = label("Reading the subtitles…", "faint")
         v.addWidget(self.info)
         self.list = QListWidget()
         self.list.setStyleSheet(f"QListWidget{{background:transparent;border:none;}}"
@@ -190,7 +189,7 @@ class SubSearch(QFrame):
 
     def start(self, src: str, track: dict | None):
         if not track:
-            self.info.setText("Questo video non ha sottotitoli. Aggiungine uno (trascina un .srt sul player) e riprova.")
+            self.info.setText("This video has no subtitles. Add one (drop an .srt on the player) and try again.")
         else:
             self.loader.load(src, track)
         g = self.page.mapToGlobal(self.page.rect().topLeft())
@@ -204,7 +203,7 @@ class SubSearch(QFrame):
             self.info.setText(msg)
             return
         self.cues = cues
-        self.info.setText(f"{len(cues)} battute pronte · Invio salta al primo risultato")
+        self.info.setText(f"{len(cues)} lines ready · Enter jumps to the first result")
         self._run()
 
     def _run(self):
@@ -215,9 +214,9 @@ class SubSearch(QFrame):
         res = search(self.cues, q)
         if not q.strip():
             self.list.hide()
-            self.info.setText(f"{len(self.cues)} battute pronte · Invio salta al primo risultato")
+            self.info.setText(f"{len(self.cues)} lines ready · Enter jumps to the first result")
         else:
-            self.info.setText(f"{len(res)} risultati" if res else "Nessun risultato")
+            self.info.setText(f"{len(res)} results" if res else "No results")
             for t, x in res:
                 it = QListWidgetItem(f"{human_time(t)}    {x}")
                 it.setData(Qt.UserRole, t)

@@ -63,13 +63,13 @@ def load_mpv() -> bool:
 load_mpv()
 
 LANGS = {
-    "ita": "Italiano", "it": "Italiano", "eng": "Inglese", "en": "Inglese", "jpn": "Giapponese",
-    "ja": "Giapponese", "spa": "Spagnolo", "es": "Spagnolo", "fre": "Francese", "fra": "Francese",
-    "fr": "Francese", "ger": "Tedesco", "deu": "Tedesco", "de": "Tedesco", "por": "Portoghese",
-    "pt": "Portoghese", "rus": "Russo", "ru": "Russo", "hin": "Hindi", "hi": "Hindi", "mal": "Malayalam",
-    "ml": "Malayalam", "tam": "Tamil", "ta": "Tamil", "tel": "Telugu", "te": "Telugu", "kor": "Coreano",
-    "ko": "Coreano", "chi": "Cinese", "zho": "Cinese", "zh": "Cinese", "ara": "Arabo", "ar": "Arabo",
-    "und": "Sconosciuta",
+    "ita": "Italian", "it": "Italian", "eng": "English", "en": "English", "jpn": "Japanese",
+    "ja": "Japanese", "spa": "Spanish", "es": "Spanish", "fre": "French", "fra": "French",
+    "fr": "French", "ger": "German", "deu": "German", "de": "German", "por": "Portuguese",
+    "pt": "Portuguese", "rus": "Russian", "ru": "Russian", "hin": "Hindi", "hi": "Hindi", "mal": "Malayalam",
+    "ml": "Malayalam", "tam": "Tamil", "ta": "Tamil", "tel": "Telugu", "te": "Telugu", "kor": "Korean",
+    "ko": "Korean", "chi": "Chinese", "zho": "Chinese", "zh": "Chinese", "ara": "Arabic", "ar": "Arabic",
+    "und": "Unknown",
 }
 CODECS = {"eac3": "E-AC3", "ac3": "AC3", "dts": "DTS", "truehd": "TrueHD", "aac": "AAC", "flac": "FLAC",
           "opus": "Opus", "mp3": "MP3", "vorbis": "Vorbis", "pcm_s16le": "PCM", "pcm_s24le": "PCM",
@@ -90,7 +90,7 @@ def channels_label(n):
 def track_label(t: dict) -> str:
     parts = []
     lang = t.get("lang")
-    parts.append(LANGS.get(lang, lang.upper()) if lang else f"Traccia {t.get('id')}")
+    parts.append(LANGS.get(lang, lang.upper()) if lang else f"Track {t.get('id')}")
     if t.get("title") and t.get("title") != lang:
         parts[0] += f" — {t['title']}"
     codec = t.get("codec")
@@ -108,11 +108,11 @@ def track_label(t: dict) -> str:
         if br:
             parts.append(f"{br / 1e6:.1f} Mbps")
     if t.get("forced"):
-        parts.append("Forzati")
+        parts.append("Forced")
     if t.get("default"):
         parts.append("Default")
     if t.get("external"):
-        parts.append("Esterni")
+        parts.append("External")
     return " · ".join(parts)
 
 
@@ -463,8 +463,8 @@ class TrackPanel(QFrame):
         v = QVBoxLayout(box)
         v.setContentsMargins(10, 12, 10, 10)
         v.setSpacing(4)
-        titles = {"audio": "Audio", "sub": "Sottotitoli", "video": "Qualità video", "speed": "Velocità",
-                  "device": "Uscita audio"}
+        titles = {"audio": "Audio", "sub": "Subtitles", "video": "Video quality", "speed": "Speed",
+                  "device": "Audio output"}
         t = label(titles[kind], "sectionTitle")
         t.setContentsMargins(8, 0, 0, 4)
         v.addWidget(t)
@@ -513,8 +513,8 @@ class TrackPanel(QFrame):
         val = label(fmt(value_fn()))
         val.setMinimumWidth(56)
         val.setAlignment(Qt.AlignCenter)
-        bm = IconButton("down", "Diminuisci", 28, 14)
-        bp = IconButton("up", "Aumenta", 28, 14)
+        bm = IconButton("down", "Decrease", 28, 14)
+        bp = IconButton("up", "Increase", 28, 14)
         br = IconButton("retry", "Reimposta", 28, 14)
         bm.clicked.connect(lambda: (minus(), val.setText(fmt(value_fn()))))
         bp.clicked.connect(lambda: (plus(), val.setText(fmt(value_fn()))))
@@ -530,9 +530,9 @@ class TrackPanel(QFrame):
         prop = {"audio": "aid", "sub": "sid", "video": "vid"}[self.kind]
         if self.kind == "sub":
             none_sel = not any(t.get("selected") for t in tracks)
-            self._row("Disattivati", none_sel, lambda: self.page.set_prop("sid", "no"))
+            self._row("Off", none_sel, lambda: self.page.set_prop("sid", "no"))
         if not tracks and self.kind != "sub":
-            self.v.addWidget(label("  Nessuna traccia", "faint"))
+            self.v.addWidget(label("  No tracks", "faint"))
         for t in tracks:
             self._row(track_label(t), bool(t.get("selected")),
                       lambda tid=t["id"]: self.page.set_prop(prop, tid))
@@ -541,41 +541,41 @@ class TrackPanel(QFrame):
         self.v.addSpacing(6)
         if self.kind == "audio":
             pg = self.page
-            self._head("Suono")
+            self._head("Sound")
             cur = pg.audio_profile()
             eff = pg.effective_profile()
             for k, name, desc in snd.PROFILES:
-                sub = f"ora: {snd.PROFILE_NAMES.get(eff, eff)}" if k == "auto" else ""
+                sub = f"now: {snd.PROFILE_NAMES.get(eff, eff)}" if k == "auto" else ""
                 self._row(name, k == cur, lambda k=k: pg.set_audio_profile(k), sub, tip=desc)
-            self._head("Uscita")
+            self._head("Output")
             self._row(pg.device_desc(), False, lambda: QTimer.singleShot(
-                0, lambda: TrackPanel(pg, "device").popup_at(pg.controls.b_audio)), "cambia ›")
+                0, lambda: TrackPanel(pg, "device").popup_at(pg.controls.b_audio)), "change ›")
 
             def delay(d):
                 pg.add_prop("audio-delay", d) if d else pg.set_prop("audio-delay", 0)
                 pg.save_device_delay()
-            self._stepper("Ritardo audio (ricordato per questa uscita)", lambda: pg.get_prop("audio-delay", 0),
+            self._stepper("Audio delay (remembered for this output)", lambda: pg.get_prop("audio-delay", 0),
                           lambda: delay(-0.05), lambda: delay(0.05), lambda: delay(0), lambda v: f"{v:+.2f}s")
         else:
-            self._stepper("Ritardo sottotitoli", lambda: self.page.get_prop("sub-delay", 0),
+            self._stepper("Subtitle delay", lambda: self.page.get_prop("sub-delay", 0),
                           lambda: self.page.add_prop("sub-delay", -0.1),
                           lambda: self.page.add_prop("sub-delay", 0.1),
                           lambda: self.page.set_prop("sub-delay", 0), lambda v: f"{v:+.1f}s")
-            self._stepper("Dimensione", lambda: self.page.get_prop("sub-scale", 1),
+            self._stepper("Size", lambda: self.page.get_prop("sub-scale", 1),
                           lambda: self.page.add_prop("sub-scale", -0.1),
                           lambda: self.page.add_prop("sub-scale", 0.1),
                           lambda: self.page.set_prop("sub-scale", 1.0), lambda v: f"{v * 100:.0f}%")
-            self._stepper("Posizione", lambda: self.page.get_prop("sub-pos", 100),
+            self._stepper("Position", lambda: self.page.get_prop("sub-pos", 100),
                           lambda: self.page.add_prop("sub-pos", -2),
                           lambda: self.page.add_prop("sub-pos", 2),
                           lambda: self.page.set_prop("sub-pos", 100), lambda v: f"{v:.0f}%")
-            b = button("Carica sottotitoli esterni…", None, "file")
+            b = button("Load external subtitles…", None, "file")
             b.clicked.connect(lambda: (self.close(), self.page.load_external_sub()))
             self.v.addSpacing(4)
             self.v.addWidget(b)
             row = QHBoxLayout()
-            b2 = button("Sincronizza da solo", None, "retry")
-            b2.setToolTip("Ascolta il film e mette i sottotitoli a tempo (anche se sono per un'altra versione).")
+            b2 = button("Sync automatically", None, "retry")
+            b2.setToolTip("Listens to the movie and times the subtitles (even if they're for another version).")
             b2.clicked.connect(lambda: (self.close(), self.page.sync_subs()))
             row.addWidget(b2)
             self.v.addLayout(row)
@@ -583,14 +583,13 @@ class TrackPanel(QFrame):
     def _devices(self):
         pg = self.page
         cur = pg.device_name()
-        devs = pg._device_list or [{"name": "auto", "description": "Predefinita di Windows"}]
+        devs = pg._device_list or [{"name": "auto", "description": "Windows default"}]
         for d in devs:
             name = d.get("name", "")
-            desc = "Predefinita di Windows" if name == "auto" else (d.get("description") or name)
-            sub = "FxSound" if snd.is_fxsound(desc) else ("diretta" if name != "auto" else "")
+            desc = "Windows default" if name == "auto" else (d.get("description") or name)
+            sub = "FxSound" if snd.is_fxsound(desc) else ("direct" if name != "auto" else "")
             self._row(desc, name == cur, lambda n=name: pg.set_audio_device(n), sub)
-        note = label("Scegli l'uscita diretta (non FxSound) per il suono originale del film. "
-                     "Profilo e ritardo vengono ricordati per ogni uscita.", "faint")
+        note = label("Pick the direct output (not FxSound) for the movie's original sound. Profile and delay are remembered for each output.", "faint")
         note.setWordWrap(True)
         note.setContentsMargins(8, 6, 8, 0)
         note.setMaximumWidth(340)
@@ -599,7 +598,7 @@ class TrackPanel(QFrame):
     def _speed(self):
         cur = self.page.get_prop("speed", 1.0)
         for s in (0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0, 4.0):
-            self._row("Normale" if s == 1 else f"{s:g}x", abs(cur - s) < 0.01,
+            self._row("Normal" if s == 1 else f"{s:g}x", abs(cur - s) < 0.01,
                       lambda s=s: self.page.set_prop("speed", s))
 
     def popup_at(self, w: QWidget):
@@ -639,20 +638,20 @@ class CastPanel(TrackPanel):
         self.v = QVBoxLayout(box)
         self.v.setContentsMargins(10, 12, 10, 10)
         self.v.setSpacing(4)
-        t = label("Trasmetti", "sectionTitle")
+        t = label("Cast", "sectionTitle")
         t.setContentsMargins(8, 0, 0, 4)
         self.v.addWidget(t)
-        self._head("TV in casa")
-        self.wait = label("  Cerco le TV sulla rete…", "faint")
+        self._head("TVs at home")
+        self.wait = label("  Looking for TVs on the network…", "faint")
         self.v.addWidget(self.wait)
         self.tv_box = QVBoxLayout()
         self.v.addLayout(self.tv_box)
         if page.casting:
-            self._row(f"Ferma la TV ({page.casting['name']})", False, page.stop_cast)
-            self._row("Ricollega la TV (stesso punto)", False,
+            self._row(f"Stop the TV ({page.casting['name']})", False, page.stop_cast)
+            self._row("Reconnect the TV (same point)", False,
                       lambda: page.cast_pc(page.casting) if page.cast_session else page.cast_to(page.casting))
-        self._head("Telefono")
-        self._row("Telecomando dal telefono", False, page.show_remote, "QR ›")
+        self._head("Phone")
+        self._row("Phone remote", False, page.show_remote, "QR ›")
         self.setMinimumWidth(330)
         self.found.connect(self._show)
         from . import lan
@@ -665,28 +664,26 @@ class CastPanel(TrackPanel):
             pass
 
     def _show(self, tvs):
-        self.wait.setText("  Nessuna TV trovata: accendila e collegala allo stesso Wi-Fi." if not tvs else "")
+        self.wait.setText("  No TV found: turn it on and connect it to the same Wi-Fi." if not tvs else "")
         self.wait.setVisible(not tvs)
         v0 = self.v
         self.v = self.tv_box
         for tv in tvs:
             self._row(tv["name"], bool(self.page.casting and self.page.casting.get("control") == tv["control"]),
-                      lambda tv=tv: self.page.cast_pc(tv), "il PC fa tutto",
-                      "Il PC prepara il film (sottotitoli inclusi) e la TV lo mostra soltanto: niente blocchi "
-                      "anche col Wi-Fi debole. Salti e pausa da NOVA o dal telefono.")
+                      lambda tv=tv: self.page.cast_pc(tv), "the PC does everything",
+                      "The PC prepares the movie (subtitles included) and the TV only shows it: no stalls even on weak Wi-Fi. Seek and pause from NOVA or your phone.")
         if tvs:
-            self._head("Qualità sulla TV")
+            self._head("Quality on the TV")
             cur = settings.get("player", "tv_quality") or "auto"
-            for k, name, sub in (("auto", "Automatica", "si adatta al Wi-Fi"),
-                                 ("high", "Alta", "1080p · Wi-Fi forte"),
-                                 ("medium", "Media", "1080p leggero"),
-                                 ("low", "Wi-Fi debole", "720p"),
-                                 ("slow", "Wi-Fi molto lento", "720p leggero")):
+            for k, name, sub in (("auto", "Automatic", "adapts to the Wi-Fi"),
+                                 ("high", "High", "1080p · strong Wi-Fi"),
+                                 ("medium", "Media", "1080p light"),
+                                 ("low", "Weak Wi-Fi", "720p"),
+                                 ("slow", "Very slow Wi-Fi", "720p light")):
                 self._row(name, k == cur, lambda k=k: self.page.set_tv_quality(k), sub)
             for tv in tvs:
-                self._row(f"{tv['name']} · originale", False, lambda tv=tv: self.page.cast_to(tv),
-                          "senza ricomprimere", "Manda il file così com'è: massima qualità, ma serve un Wi-Fi forte "
-                          "e i salti si fanno dal telecomando della TV.")
+                self._row(f"{tv['name']} · original", False, lambda tv=tv: self.page.cast_to(tv),
+                          "no re-encoding", "Sends the file as it is: maximum quality, but it needs strong Wi-Fi and seeking is done with the TV remote.")
         self.v = v0
         self.adjustSize()
 
@@ -710,32 +707,32 @@ class Controls(QWidget):
         v.addLayout(tr)
         row = QHBoxLayout()
         row.setSpacing(4)
-        self.b_prev = IconButton("prev", "Precedente", 36, 18)
-        self.b_play = IconButton("play", "Play/Pausa (Spazio)", 46, 22, filled=True)
-        self.b_next = IconButton("next", "Successivo", 36, 18)
-        self.b_vol = IconButton("volume", "Muto (M)", 36, 20)
+        self.b_prev = IconButton("prev", "Previous", 36, 18)
+        self.b_play = IconButton("play", "Play/Pause (Space)", 46, 22, filled=True)
+        self.b_next = IconButton("next", "Next", 36, 18)
+        self.b_vol = IconButton("volume", "Mute (M)", 36, 20)
         self.vol = QSlider(Qt.Horizontal)
         self.vol.setRange(0, 150)
         self.vol.setFixedWidth(96)
         self.vol.setValue(settings.get("player", "volume"))
         self.time = label("00:00 / 00:00")
         self.net = label("", "faint")
-        self.b_skip = button("Salta intro  ›", "primary")
+        self.b_skip = button("Skip intro  ›", "primary")
         self.b_skip.hide()
         self.b_cam = button("Boost", "chip")
         self.b_cam.setCheckable(True)
-        self.b_cam.setToolTip("Migliora i video di bassa qualità (T): meno blocchi e grana, immagine più nitida, voci più chiare")
+        self.b_cam.setToolTip("Improve low-quality videos (T): less blocking and grain, sharper picture, clearer voices")
         self.b_cam.setFixedHeight(30)
-        self.b_speed = IconButton("speed", "Velocità", 36, 19)
-        self.b_quality = IconButton("film", "Qualità video", 36, 19)
-        self.b_audio = IconButton("audio", "Tracce audio", 36, 19)
-        self.b_sub = IconButton("subtitles", "Sottotitoli", 36, 19)
+        self.b_speed = IconButton("speed", "Speed", 36, 19)
+        self.b_quality = IconButton("film", "Video quality", 36, 19)
+        self.b_audio = IconButton("audio", "Audio tracks", 36, 19)
+        self.b_sub = IconButton("subtitles", "Subtitles", 36, 19)
         self.b_loop = IconButton("loop", "Loop A-B (L)", 36, 19)
-        self.b_stats = IconButton("info", "Statistiche (I)", 36, 19)
-        self.b_dl = IconButton("download", "Scarica questo video", 36, 19)
+        self.b_stats = IconButton("info", "Statistics (I)", 36, 19)
+        self.b_dl = IconButton("download", "Download this video", 36, 19)
         self.b_pip = IconButton("pip", "Picture-in-picture (P)", 36, 19)
-        self.b_cast = IconButton("cast", "Trasmetti alla TV · Telecomando dal telefono", 36, 19)
-        self.b_fs = IconButton("fullscreen", "Schermo intero (F)", 36, 19)
+        self.b_cast = IconButton("cast", "Cast to TV · Phone remote", 36, 19)
+        self.b_fs = IconButton("fullscreen", "Full screen (F)", 36, 19)
         for b in (self.b_prev, self.b_play, self.b_next, self.b_vol):
             row.addWidget(b)
         row.addWidget(self.vol)
@@ -847,11 +844,11 @@ class PlayerPage(QWidget):
         tv = QVBoxLayout()
         tv.setSpacing(0)
         self.title = label("Player", "pageTitle")
-        self.subtitle = label("Apri un file o trascinalo qui", "pageSub")
+        self.subtitle = label("Open a file or drop it here", "pageSub")
         tv.addWidget(self.title)
         tv.addWidget(self.subtitle)
         th.addLayout(tv, 1)
-        self.b_open = button("Apri file", "primary", "folder", self.open_files)
+        self.b_open = button("Open file", "primary", "folder", self.open_files)
         th.addWidget(self.b_open, 0, Qt.AlignVCenter)
         root.addWidget(self.top)
 
@@ -935,16 +932,15 @@ class PlayerPage(QWidget):
         if cont:
             proxy = _HeroProxy(self)
             lay.addWidget(Hero(cont[0], proxy))
-            hint = label("Oppure trascina qui un file, o aprilo da Esplora file.", "faint")
+            hint = label("Or drop a file here, or open it from File Explorer.", "faint")
             hint.setAlignment(Qt.AlignCenter)
             lay.addSpacing(10)
             lay.addWidget(hint)
             lay.addStretch()
         else:
-            lay.addWidget(EmptyState("player", "Nessun video in riproduzione",
-                                     "Trascina un file qui, aprilo da Esplora file o incolla un link nella sezione "
-                                     "Stream. Supporta MKV, MP4, AVI, MOV, WEBM, TS, HEVC, AV1, DTS, TrueHD e altro.",
-                                     button("Apri file", "primary", "folder", self.open_files)))
+            lay.addWidget(EmptyState("player", "Nothing playing",
+                                     "Drop a file here, open it from File Explorer or paste a link in the Stream section. Supports MKV, MP4, AVI, MOV, WEBM, TS, HEVC, AV1, DTS, TrueHD and more.",
+                                     button("Open file", "primary", "folder", self.open_files)))
 
     def showEvent(self, e):
         idle = self.video_stack.currentWidget() is self.empty
@@ -1021,7 +1017,7 @@ class PlayerPage(QWidget):
         try:
             self.player = mpv.MPV(log_handler=self._log, loglevel="warn", **opts)
         except Exception as e:
-            self.status.emit(f"Impossibile avviare mpv: {e}", "err")
+            self.status.emit(f"Can't start mpv: {e}", "err")
             return False
         self.apply_runtime_settings()
         self.set_prop("audio-delay", float(self._dev_mem().get("delay", 0.0)))
@@ -1056,7 +1052,7 @@ class PlayerPage(QWidget):
         if getattr(self, "_repairing", False):
             return
         self._repairing = True
-        self.status.emit("Manca il motore video: lo scarico ora (circa 1 minuto, una volta sola)…", "info")
+        self.status.emit("The video engine is missing: downloading it now (about 1 minute, only once)…", "info")
 
         def work():
             from . import deps
@@ -1070,9 +1066,9 @@ class PlayerPage(QWidget):
     def _repaired(self, ok):
         self._repairing = False
         if ok and load_mpv():
-            self.status.emit("Motore video pronto: riapri il film.", "info")
+            self.status.emit("Video engine ready: reopen the movie.", "info")
         else:
-            self.status.emit("Non riesco a scaricare il motore video: controlla la connessione e riprova.", "err")
+            self.status.emit("Can't download the video engine: check your connection and try again.", "err")
 
     def _log(self, level, prefix, text):
         try:
@@ -1202,13 +1198,13 @@ class PlayerPage(QWidget):
     def add_prop(self, name, delta):
         self.set_prop(name, round(float(self.get_prop(name, 0)) + delta, 3))
         if name.endswith("delay"):
-            self.cmd("show-text", f"{'Audio' if 'audio' in name else 'Sottotitoli'}: {self.get_prop(name, 0):+.1f}s")
+            self.cmd("show-text", f"{'Audio' if 'audio' in name else 'Subtitles'}: {self.get_prop(name, 0):+.1f}s")
 
     # ---------- apertura ----------
     def open_files(self):
         exts = " ".join(f"*{e}" for e in sorted(VIDEO_EXT | AUDIO_EXT))
-        files, _ = QFileDialog.getOpenFileNames(self, "Apri file multimediali", "",
-                                                f"Media ({exts});;Tutti i file (*)")
+        files, _ = QFileDialog.getOpenFileNames(self, "Open media files", "",
+                                                f"Media ({exts});;All files (*)")
         if files:
             self.play(files[0], extra=files[1:])
 
@@ -1229,8 +1225,8 @@ class PlayerPage(QWidget):
         self.thumbs.set_file(url if is_local else None)
         name = title or (Path(url).name if is_local else None)
         known = history.get(key or url)
-        self.title.setText((known or {}).get("clean") or name or "Caricamento…")
-        self.subtitle.setText("Locale" if is_local else ("Torrent · streaming" if kind == "torrent" else url[:110]))
+        self.title.setText((known or {}).get("clean") or name or "Loading…")
+        self.subtitle.setText("Local" if is_local else ("Torrent · streaming" if kind == "torrent" else url[:110]))
         old = history.get(self.current_key)
         if start is None and settings.get("player", "resume"):
             start = resume_point(old)
@@ -1241,7 +1237,7 @@ class PlayerPage(QWidget):
         self._update_dl_button()
         if self._turbo_candidate(url):
             # Stream Turbo: prima controlla il link (dimensione, salti), poi parte dal proxy multi-connessione
-            self.subtitle.setText("Stream Turbo · collegamento…")
+            self.subtitle.setText("Stream Turbo · connecting…")
             self._pending = (secrets.token_hex(6), url, extra, start)
             ss = settings.data["stream"]
             self.turbo.open(url, ss.get("user_agent", ""), int(ss.get("turbo_connections", 8)), self._pending[0])
@@ -1258,7 +1254,7 @@ class PlayerPage(QWidget):
             for f in extra or []:
                 self.player.loadfile(f, "append")
         except Exception as e:
-            self.status.emit(f"Errore: {e}", "err")
+            self.status.emit(f"Error: {e}", "err")
             return
         finally:
             old = getattr(self, "_old_sid", None)
@@ -1268,7 +1264,7 @@ class PlayerPage(QWidget):
                 self._old_sid = None
         self.set_prop("pause", False)
         if start:
-            QTimer.singleShot(900, lambda: self.cmd("show-text", f"Ripreso da {human_time(start)}", "2500"))
+            QTimer.singleShot(900, lambda: self.cmd("show-text", f"Resumed from {human_time(start)}", "2500"))
 
     # ---------- Stream Turbo ----------
     @staticmethod
@@ -1295,12 +1291,12 @@ class PlayerPage(QWidget):
         if not info.get("ok"):
             exp = link_expiry(url)
             if info.get("expired") and exp and exp < time.time():
-                self.subtitle.setText("Link scaduto")
-                self.status.emit("Questo link è scaduto: copia un link nuovo dal sito e riaprilo.", "err")
+                self.subtitle.setText("Link expired")
+                self.status.emit("This link has expired: copy a new link from the website and open it again.", "err")
                 return
             self._load(url, extra, start)    # non raggiungibile in turbo: prova normale
             return
-        if info.get("name") and self.title.text() in ("Caricamento…", ""):
+        if info.get("name") and self.title.text() in ("Loading…", ""):
             self.title.setText(info["name"])
             history.set_title(self.current_key, info["name"])
         if not info.get("local"):
@@ -1401,11 +1397,11 @@ class PlayerPage(QWidget):
                 self.player.command("vf", "remove", "@nova_vsr")
             if want:
                 self.player.command("vf", "add", f"@nova_vsr:{want}")
-                self.cmd("show-text", "RTX Super Resolution attiva", "1500")
+                self.cmd("show-text", "RTX Super Resolution on", "1500")
             self._vsr = want
         except Exception as e:
             self._vsr = None
-            self._log("warn", "vsr", f"non disponibile: {e}\n")
+            self._log("warn", "vsr", f"not available: {e}\n")
 
     def _monitor(self):
         names = self.get_prop("display-names", []) or []
@@ -1436,7 +1432,7 @@ class PlayerPage(QWidget):
         if winutil.set_refresh(dev, target):
             if not self._refresh_switched:
                 self._refresh_switched = (dev, orig)
-            self.cmd("show-text", f"Monitor a {target} Hz per questo film", "2000")
+            self.cmd("show-text", f"Monitor at {target} Hz for this movie", "2000")
             return True
         return False
 
@@ -1460,7 +1456,7 @@ class PlayerPage(QWidget):
     def device_desc(self, name: str | None = None) -> str:
         name = name or self.device_name()
         if name == "auto":
-            return "Predefinita di Windows"
+            return "Windows default"
         d = next((x for x in self._device_list if x.get("name") == name), None)
         return (d.get("description") if d else None) or name
 
@@ -1481,7 +1477,7 @@ class PlayerPage(QWidget):
         self._apply_audio(force=True)
         eff = self.effective_profile()
         extra = f" → {snd.PROFILE_NAMES.get(eff, eff)}" if prof == "auto" else ""
-        self.cmd("show-text", f"Suono: {snd.PROFILE_NAMES.get(prof, prof)}{extra}", "1800")
+        self.cmd("show-text", f"Sound: {snd.PROFILE_NAMES.get(prof, prof)}{extra}", "1800")
 
     def set_audio_device(self, name: str):
         settings.set("audio", "device", name, notify=False)
@@ -1489,7 +1485,7 @@ class PlayerPage(QWidget):
         mem = self._dev_mem()
         self.set_prop("audio-delay", float(mem.get("delay", 0.0)))
         self._apply_audio(force=True)
-        self.cmd("show-text", f"Uscita: {self.device_desc()}", "1800")
+        self.cmd("show-text", f"Output: {self.device_desc()}", "1800")
 
     def set_exclusive(self, on: bool):
         self.set_prop("audio-exclusive", "yes" if on else "no")
@@ -1508,20 +1504,18 @@ class PlayerPage(QWidget):
                 self._dev_lost = True
                 if not self.get_prop("idle-active", True) and not self.get_prop("pause", True):
                     self.set_prop("pause", True)
-                    self.status.emit(f"{self.device_desc()} scollegate: film in pausa. Ricollegale e premi play "
-                                     "(o premi play per sentire dalle casse).", "info")
+                    self.status.emit(f"{self.device_desc()} disconnected: movie paused. Reconnect them and press play (or press play to hear it from the speakers).", "info")
                 self.set_prop("audio-device", "auto")
             elif want in names and getattr(self, "_dev_lost", False):
                 self._dev_lost = False
                 self.set_prop("audio-device", want)
-                self.cmd("show-text", f"{self.device_desc()} di nuovo collegate", "1800")
+                self.cmd("show-text", f"{self.device_desc()} connected again", "1800")
         a = settings.data["audio"]
         if (not a.get("fx_warned") and self.device_name() == "auto"
                 and any(snd.is_fxsound(d.get("description", "")) for d in self._device_list)):
             a["fx_warned"] = True
             settings.save()
-            self.status.emit("FxSound è installato: se vuoi il suono originale del film, nel pannello Audio "
-                             "scegli l'uscita diretta (cuffie o casse) invece di FxSound.", "info")
+            self.status.emit("FxSound is installed: if you want the movie's original sound, pick the direct output (headphones or speakers) in the Audio panel instead of FxSound.", "info")
 
     def _on_audio_params(self, params):
         self._audio_in = params or {}
@@ -1546,7 +1540,7 @@ class PlayerPage(QWidget):
         try:
             self.player.command("set", "af", af)
         except Exception as e:
-            self._log("warn", "audio", f"filtro non applicato ({e}): {af}\n")
+            self._log("warn", "audio", f"filter not applied ({e}): {af}\n")
             try:
                 self.player.command("set", "af", "")
             except Exception:
@@ -1627,17 +1621,17 @@ class PlayerPage(QWidget):
             self._set_cover(path)
 
     def load_external_sub(self):
-        f, _ = QFileDialog.getOpenFileName(self, "Carica sottotitoli", "",
-                                           "Sottotitoli (*.srt *.ass *.ssa *.vtt *.sub *.sup *.idx);;Tutti (*)")
+        f, _ = QFileDialog.getOpenFileName(self, "Load subtitles", "",
+                                           "Subtitles (*.srt *.ass *.ssa *.vtt *.sub *.sup *.idx);;All (*)")
         if f:
             self.add_sub(f)
 
     def add_sub(self, f):
         try:
             self.player.sub_add(f, "select")
-            self.cmd("show-text", f"Sottotitoli caricati: {Path(f).name}")
+            self.cmd("show-text", f"Subtitles loaded: {Path(f).name}")
         except Exception as e:
-            self.status.emit(f"Sottotitoli non validi: {e}", "err")
+            self.status.emit(f"Invalid subtitles: {e}", "err")
 
     def _download_current(self):
         if self.current_url and not os.path.isfile(self.current_url):
@@ -1727,8 +1721,8 @@ class PlayerPage(QWidget):
 
     def _osd_track(self, typ):
         sel = [t for t in self.track_list if t.get("type") == typ and t.get("selected")]
-        name = track_label(sel[0]) if sel else "Disattivati"
-        self.cmd("show-text", f"{'Audio' if typ == 'audio' else 'Sottotitoli'}: {name}")
+        name = track_label(sel[0]) if sel else "Off"
+        self.cmd("show-text", f"{'Audio' if typ == 'audio' else 'Subtitles'}: {name}")
 
     def _on_key(self, action):
         if action == "move":
@@ -1751,9 +1745,9 @@ class PlayerPage(QWidget):
             "mute": self.toggle_mute, "stats": self.toggle_stats,
             "next_audio": lambda: self.cycle_track("audio"), "next_sub": lambda: self.cycle_track("sub"),
             "speed_up": lambda: (self.set_prop("speed", min(4.0, self.get_prop("speed", 1) + 0.25)),
-                                 self.cmd("show-text", f"Velocità {self.get_prop('speed', 1):g}x")),
+                                 self.cmd("show-text", f"Speed {self.get_prop('speed', 1):g}x")),
             "speed_down": lambda: (self.set_prop("speed", max(0.25, self.get_prop("speed", 1) - 0.25)),
-                                   self.cmd("show-text", f"Velocità {self.get_prop('speed', 1):g}x")),
+                                   self.cmd("show-text", f"Speed {self.get_prop('speed', 1):g}x")),
             "ab_loop": self.ab_loop, "pip": lambda: self.request_pip.emit(not self.is_pip),
             "vol_up": lambda: self.controls.vol.setValue(min(150, self.controls.vol.value() + 5)),
             "vol_down": lambda: self.controls.vol.setValue(max(0, self.controls.vol.value() - 5)),
@@ -1828,8 +1822,7 @@ class PlayerPage(QWidget):
         self._log("info", "perf", f"hwdec={hw} h={h} codec={codec} "
                   f"adapter={settings.get('player', 'hwdec') and winutil.discrete_gpu_name()}\n")
         if h >= 1440 and hw in ("no", "", None) and settings.get("player", "hwdec"):
-            self.status.emit("Decodifica hardware non attiva su questo video: potrebbe scattare. "
-                             "Aggiorna il driver NVIDIA e riavvia NOVA.", "err")
+            self.status.emit("Hardware decoding is not active for this video: it may stutter. Update the NVIDIA driver and restart NOVA.", "err")
 
     def _on_loaded(self):
         self._film_restored = False
@@ -1863,8 +1856,8 @@ class PlayerPage(QWidget):
 
     def _on_end(self, reason, error):
         if reason == 4:  # ERROR
-            self.status.emit("Impossibile riprodurre questo contenuto. Controlla il link o il formato.", "err")
-            self.subtitle.setText("Errore di riproduzione")
+            self.status.emit("Can't play this content. Check the link or the format.", "err")
+            self.subtitle.setText("Playback error")
 
     def _poll(self):
         if not self.player:
@@ -2021,8 +2014,8 @@ class PlayerPage(QWidget):
             self._log("warn", "cam", f"{e}\n")
         if changed and not quiet:
             it = history.get(self.current_key) or {}
-            extra = " · audio Line già pulito" if on and it.get("line_audio") else ""
-            self.cmd("show-text", ("Boost video attivo" + extra) if on else "Boost video spento", "1800")
+            extra = " · Line audio already clean" if on and it.get("line_audio") else ""
+            self.cmd("show-text", ("Video boost on" + extra) if on else "Video boost off", "1800")
         if changed and self.current_key and self._film_restored:
             history.update_state(self.current_key, self._film_state())
 
@@ -2080,11 +2073,11 @@ class PlayerPage(QWidget):
             if settings.get("library", "skip_intro_auto") and not self._intro_skipped:
                 self._intro_skipped = True
                 self.seek_abs(self.intro[1])
-                self.cmd("show-text", "Intro saltata", "1500")
+                self.cmd("show-text", "Intro skipped", "1500")
                 return
-            show = "Salta intro  ›"
+            show = "Skip intro  ›"
         elif self.credits and self.credits[0] <= pos < self.credits[1] - 3:
-            show = "Prossimo episodio  ›"
+            show = "Next episode  ›"
         if show:
             if b.text() != show:
                 b.setText(show)
@@ -2095,7 +2088,7 @@ class PlayerPage(QWidget):
             b.hide()
 
     def _skip_clicked(self):
-        if self.controls.b_skip.text().startswith("Salta") and self.intro:
+        if self.controls.b_skip.text().startswith("Skip") and self.intro:
             self._intro_skipped = True
             self.seek_abs(self.intro[1])
         elif self.current_key:
@@ -2119,7 +2112,7 @@ class PlayerPage(QWidget):
         sub = next((t for t in self.track_list if t.get("type") == "sub" and t.get("selected")), None)
         aud = next((t for t in self.track_list if t.get("type") == "audio" and t.get("selected")), None)
         if not sub or not aud:
-            self.status.emit("Attiva prima i sottotitoli da sincronizzare.", "err")
+            self.status.emit("Turn on the subtitles to sync first.", "err")
             return
         from . import ai
         src = self.media_source()
@@ -2128,8 +2121,8 @@ class PlayerPage(QWidget):
         aidx = self._rel_index("audio", aud)
         ext = sub.get("external-filename")
         sidx = None if ext else self._rel_index("sub", sub)
-        self.cmd("show-text", "Sincronizzo i sottotitoli…", "4000")
-        self.status.emit("Ascolto il film e allineo i sottotitoli: qualche secondo…", "info")
+        self.cmd("show-text", "Syncing subtitles…", "4000")
+        self.status.emit("Listening to the movie and aligning the subtitles: a few seconds…", "info")
 
         def work():
             import tempfile
@@ -2146,37 +2139,37 @@ class PlayerPage(QWidget):
     def _sync_done(self, r):
         from . import ai
         if not r.get("ok"):
-            self.status.emit("Sincronizzazione non riuscita: " + r.get("msg", ""), "err")
+            self.status.emit("Sync failed: " + r.get("msg", ""), "err")
             return
         off, ratio, conf, before = r["off"], r["ratio"], r["conf"], r["before"]
         if conf < 0.35:
-            self.status.emit("Non sono sicuro: questi sottotitoli forse sono di un'altra versione del film.", "err")
+            self.status.emit("Not sure: these subtitles may be for another version of the movie.", "err")
             return
         if abs(ratio - 1) < 1e-6:
             self.set_prop("sub-delay", round(off, 2))
             if abs(off) < 0.15:
-                self.status.emit("I sottotitoli erano già a tempo.", "info")
+                self.status.emit("The subtitles were already in sync.", "info")
             else:
-                self.status.emit(f"Sottotitoli sincronizzati: {off:+.2f} s (sicurezza {conf * 100:.0f}%).", "info")
+                self.status.emit(f"Subtitles synced: {off:+.2f} s (confidence {conf * 100:.0f}%).", "info")
             return
         cues = ai.read_srt(r["path"])
         out = ai.subs_dir_for(self.current_url) / (Path(self.current_url).stem + ".sync.srt")
         ai.write_srt(str(out), [(a * ratio + off, b * ratio + off, t) for a, b, t in cues])
         self.set_prop("sub-delay", 0)
         self.add_sub(str(out))
-        self.status.emit("Sottotitoli corretti: erano per una versione a velocità diversa (25 / 23,976 fps).", "info")
+        self.status.emit("Subtitles fixed: they were for a version at a different speed (25 / 23.976 fps).", "info")
 
     # ---------- timer spegnimento ----------
     def set_sleep(self, seconds):
         """>0: tra N secondi · -1: a fine film · 0: annulla."""
         self._sleep_at = None if seconds == 0 else ("end" if seconds < 0 else time.time() + seconds)
-        msg = ("Timer annullato" if seconds == 0 else "Si ferma a fine film" if seconds < 0
-               else f"Si ferma tra {seconds // 60} minuti")
+        msg = ("Timer cancelled" if seconds == 0 else "Stops at the end of the movie" if seconds < 0
+               else f"Stops in {seconds // 60} minutes")
         self.cmd("show-text", msg, "2000")
 
     def _sleep_left(self):
         if self._sleep_at == "end":
-            return "fine film"
+            return "end of movie"
         return f"{max(0, int((self._sleep_at - time.time()) // 60))} min"
 
     def _check_sleep(self, pos, dur):
@@ -2193,7 +2186,7 @@ class PlayerPage(QWidget):
             self.request_fullscreen.emit(False)
         if settings.get("player", "sleep_pc"):
             QTimer.singleShot(3000, winutil.sleep_pc)
-        self.status.emit("Timer: film in pausa. Riprendi da dove eri quando vuoi.", "info")
+        self.status.emit("Timer: movie paused. Resume from where you were whenever you want.", "info")
 
     # ---------- telefono e TV ----------
     def _lan(self):
@@ -2203,7 +2196,7 @@ class PlayerPage(QWidget):
             self.lan.accent = theme.accent
             self.lan.command.connect(self._remote_cmd)
         if not self.lan.start():
-            self.status.emit("Impossibile aprire il server sulla rete di casa.", "err")
+            self.status.emit("Can't open the server on the home network.", "err")
             return None
         return self.lan
 
@@ -2248,7 +2241,7 @@ class PlayerPage(QWidget):
     def cast_pc(self, tv, quality: str | None = None):
         """TV: il PC fa tutto (decodifica, sottotitoli, compressione leggera); la TV mostra soltanto."""
         if not self.player or self.get_prop("idle-active", True):
-            self.status.emit("Apri prima un film, poi trasmettilo alla TV.", "err")
+            self.status.emit("Open a movie first, then cast it to the TV.", "err")
             return
         srv = self._lan()
         if not srv:
@@ -2270,8 +2263,7 @@ class PlayerPage(QWidget):
         cs.start(pos)
         self._show_cast_page(tv)
         h, kb = L_ladder(cs.level)
-        self.status.emit(f"Invio a {tv['name']}: il PC prepara il film ({h}p), parte in pochi secondi. "
-                         "Comanda tutto da NOVA o dal telefono.", "info")
+        self.status.emit(f"Sending to {tv['name']}: the PC prepares the movie ({h}p), it starts in a few seconds. Control everything from NOVA or your phone.", "info")
 
     def _show_cast_page(self, tv):
         """Sul PC, al posto del fotogramma fermo: 'In onda sulla TV'."""
@@ -2294,16 +2286,15 @@ class PlayerPage(QWidget):
             self._cast_sub.setAlignment(Qt.AlignCenter)
             self._cast_sub.setStyleSheet("color:rgba(255,255,255,0.65);font-size:14px;")
             v.addWidget(self._cast_sub)
-            hint = QLabel("Il PC prepara il film, la TV lo mostra soltanto.\nSalti, pausa e tracce da qui o dal "
-                          "telefono · per tornare sul PC: Trasmetti › Ferma la TV")
+            hint = QLabel("The PC prepares the movie, the TV only shows it.\nSeek, pause and tracks from here or your phone · to go back to the PC: Cast › Stop the TV")
             hint.setAlignment(Qt.AlignCenter)
             hint.setStyleSheet("color:rgba(255,255,255,0.45);font-size:12px;margin-top:14px;")
             v.addWidget(hint)
             v.addStretch(1)
             self._cast_page = w
             self.video_stack.addWidget(w)
-        self._cast_title.setText(f"In onda su {tv.get('name', 'TV')}")
-        self._cast_sub.setText("Avvio…")
+        self._cast_title.setText(f"Now playing on {tv.get('name', 'TV')}")
+        self._cast_sub.setText("Starting…")
         self.video_stack.setCurrentWidget(self._cast_page)
 
     def set_tv_quality(self, q: str):
@@ -2314,7 +2305,7 @@ class PlayerPage(QWidget):
     def cast_to(self, tv):
         from . import lan as L
         if not self.player or self.get_prop("idle-active", True):
-            self.status.emit("Apri prima un film, poi trasmettilo alla TV.", "err")
+            self.status.emit("Open a movie first, then cast it to the TV.", "err")
             return
         srv = self._lan()
         if not srv:
@@ -2350,18 +2341,17 @@ class PlayerPage(QWidget):
             except Exception as e:
                 self.bridge.cast_state.emit(tv, f"err:{e}")
         threading.Thread(target=work, daemon=True).start()
-        self.status.emit(f"Invio a {tv['name']}…", "info")
+        self.status.emit(f"Sending to {tv['name']}…", "info")
 
     def _cast_state(self, tv, st):
         if st.startswith("ok"):
             self.casting = tv
-            note = (" L'audio viene convertito per la TV: per saltare usa NOVA, non il telecomando della TV."
+            note = (" The audio is converted for the TV: to seek use NOVA, not the TV remote."
                     if st.endswith(":live") else "")
-            self.status.emit(f"In onda su {tv['name']}.{note}", "info")
+            self.status.emit(f"Now playing on {tv['name']}.{note}", "info")
         else:
             self.casting = None
-            self.status.emit(f"La TV non ha accettato il video ({st[4:][:120]}). Controlla che sia accesa e sullo "
-                             "stesso Wi-Fi, e che Windows permetta a NOVA l'accesso alle reti private.", "err")
+            self.status.emit(f"The TV didn't accept the video ({st[4:][:120]}). Check that it's on and on the same Wi-Fi, and that Windows allows NOVA on private networks.", "err")
 
     def _tv(self, a, x):
         from . import lan as L
@@ -2393,7 +2383,7 @@ class PlayerPage(QWidget):
                 self.cmd("seek", f"{pos:.1f}", "absolute")
                 self.set_prop("pause", True)
                 self.controls.b_play.set_icon("play")
-            self.status.emit("TV fermata: su NOVA riprendi da dove eri.", "info")
+            self.status.emit("TV stopped: resume on NOVA from where you were.", "info")
             return
         if tv:
             threading.Thread(target=lambda: L.tv_command(tv, "Stop"), daemon=True).start()
@@ -2405,13 +2395,13 @@ class PlayerPage(QWidget):
             return
         m = QMenu(self)
         paused = self.get_prop("pause", False)
-        m.addAction("▶  Riprendi" if paused else "❚❚  Pausa", self.toggle_pause)
+        m.addAction("▶  Resume" if paused else "❚❚  Pause", self.toggle_pause)
         m.addSeparator()
-        for typ, title, prop in (("audio", "Traccia audio", "aid"), ("sub", "Sottotitoli", "sid")):
+        for typ, title, prop in (("audio", "Audio track", "aid"), ("sub", "Subtitles", "sid")):
             sm = m.addMenu(title)
             tracks = [t for t in self.track_list if t.get("type") == typ]
             if typ == "sub":
-                a = sm.addAction("Disattivati", lambda: self.set_prop("sid", "no"))
+                a = sm.addAction("Off", lambda: self.set_prop("sid", "no"))
                 a.setCheckable(True)
                 a.setChecked(not any(t.get("selected") for t in tracks))
             for t in tracks:
@@ -2420,55 +2410,55 @@ class PlayerPage(QWidget):
                 a.setChecked(bool(t.get("selected")))
             if typ == "sub":
                 sm.addSeparator()
-                sm.addAction("Cerca una frase…  (Ctrl+F)", self.open_sub_search)
-                sm.addAction("Carica sottotitoli esterni…", self.load_external_sub)
-        sm = m.addMenu("Suono")
+                sm.addAction("Search a sentence…  (Ctrl+F)", self.open_sub_search)
+                sm.addAction("Load external subtitles…", self.load_external_sub)
+        sm = m.addMenu("Sound")
         cur = self.audio_profile()
         for k, name, _ in snd.PROFILES:
             a = sm.addAction(name, lambda k=k: self.set_audio_profile(k))
             a.setCheckable(True)
             a.setChecked(k == cur)
-        sm = m.addMenu("Velocità")
+        sm = m.addMenu("Speed")
         sp = self.get_prop("speed", 1.0)
         for v in (0.5, 0.75, 1.0, 1.25, 1.5, 2.0):
-            a = sm.addAction("Normale" if v == 1 else f"{v:g}x", lambda v=v: self.set_prop("speed", v))
+            a = sm.addAction("Normal" if v == 1 else f"{v:g}x", lambda v=v: self.set_prop("speed", v))
             a.setCheckable(True)
             a.setChecked(abs(sp - v) < 0.01)
         m.addSeparator()
-        a = m.addAction("Migliora video di bassa qualità (T)", lambda: self.set_theatre(not self.theatre))
+        a = m.addAction("Improve low-quality video (T)", lambda: self.set_theatre(not self.theatre))
         a.setCheckable(True)
         a.setChecked(self.theatre)
-        m.addAction("Sincronizza sottotitoli", self.sync_subs)
-        m.addAction("Esci da modalità cinema" if self.is_cinema else "Modalità cinema (C)",
+        m.addAction("Sync subtitles", self.sync_subs)
+        m.addAction("Exit cinema mode" if self.is_cinema else "Cinema mode (C)",
                     lambda: self.request_cinema.emit(not self.is_cinema))
-        m.addAction("Esci da schermo intero" if self.is_fullscreen else "Schermo intero (F)",
+        m.addAction("Exit full screen" if self.is_fullscreen else "Full screen (F)",
                     lambda: self.request_fullscreen.emit(not self.is_fullscreen))
         m.addAction("Picture-in-picture (P)", lambda: self.request_pip.emit(not self.is_pip))
-        m.addAction("Statistiche (I)", self.toggle_stats)
-        sm = m.addMenu("Timer spegnimento" + (f"  ·  {self._sleep_left()}" if self._sleep_at else ""))
+        m.addAction("Statistics (I)", self.toggle_stats)
+        sm = m.addMenu("Sleep timer" + (f"  ·  {self._sleep_left()}" if self._sleep_at else ""))
         for mins in (15, 30, 45, 60, 90, 120):
-            sm.addAction(f"Tra {mins} minuti", lambda mn=mins: self.set_sleep(mn * 60))
-        sm.addAction("A fine film", lambda: self.set_sleep(-1))
+            sm.addAction(f"In {mins} minutes", lambda mn=mins: self.set_sleep(mn * 60))
+        sm.addAction("At the end of the movie", lambda: self.set_sleep(-1))
         sm.addSeparator()
-        a = sm.addAction("Metti anche il PC in sospensione", lambda: settings.set(
+        a = sm.addAction("Also put the PC to sleep", lambda: settings.set(
             "player", "sleep_pc", not settings.get("player", "sleep_pc"), notify=False))
         a.setCheckable(True)
         a.setChecked(bool(settings.get("player", "sleep_pc")))
         if self._sleep_at:
-            sm.addAction("Annulla timer", lambda: self.set_sleep(0))
+            sm.addAction("Cancel timer", lambda: self.set_sleep(0))
         m.addSeparator()
         if self.get_prop("time-pos", 0) and self.get_prop("time-pos", 0) > 5:
-            m.addAction("Ricomincia dall'inizio", lambda: self.seek_abs(0))
+            m.addAction("Start from the beginning", lambda: self.seek_abs(0))
         if self.current_url and os.path.isfile(self.current_url):
             from .downloads import reveal
-            m.addAction("Mostra nella cartella", lambda: reveal(self.current_url))
+            m.addAction("Show in folder", lambda: reveal(self.current_url))
         elif self.current_url:
-            m.addAction("Copia link", lambda: QApplication.clipboard().setText(self.current_url))
-            m.addAction("Scarica questo video", self._download_current)
+            m.addAction("Copy link", lambda: QApplication.clipboard().setText(self.current_url))
+            m.addAction("Download this video", self._download_current)
         if self.current_url and not self.current_url.startswith("http://127.0.0.1"):
             from .downloads import start_phone
             it = history.get(self.current_key) or {}
-            m.addAction("Versione per telefono (max 1,4 GB)",
+            m.addAction("Phone version (max 1.4 GB)",
                         lambda: start_phone(self, self.current_url, it.get("clean") or self.title.text()))
         m.exec(QCursor.pos())
 
@@ -2476,7 +2466,7 @@ class PlayerPage(QWidget):
         self.is_cinema = on
         self.top.setVisible(not on and not self.is_pip and not self.is_fullscreen)
         if on:
-            self.cmd("show-text", "Modalità cinema · Esc per uscire", "1500")
+            self.cmd("show-text", "Cinema mode · Esc to exit", "1500")
 
     # ---------- schermo intero ----------
     def set_fullscreen_mode(self, on: bool):
@@ -2581,27 +2571,26 @@ class RemoteDialog(QDialog):
 
     def __init__(self, parent, url):
         super().__init__(parent)
-        self.setWindowTitle("Telecomando dal telefono")
+        self.setWindowTitle("Phone remote")
         v = QVBoxLayout(self)
         v.setContentsMargins(26, 22, 26, 20)
         v.setSpacing(12)
-        v.addWidget(label("Telecomando dal telefono", "sectionTitle"))
-        v.addWidget(label("Inquadra il codice con la fotocamera del telefono (stesso Wi-Fi del PC).", "muted", wrap=True))
+        v.addWidget(label("Phone remote", "sectionTitle"))
+        v.addWidget(label("Scan the code with your phone's camera (same Wi-Fi as the PC).", "muted", wrap=True))
         qr = QLabel()
         qr.setAlignment(Qt.AlignCenter)
         pm = qr_pixmap(url, 260)
         if pm:
             qr.setPixmap(pm)
         else:
-            qr.setText("(Per il QR serve il pacchetto qrcode: rilancia setup.bat)")
+            qr.setText("(The QR code needs the qrcode package: run setup.bat again)")
         v.addWidget(qr)
         u = label(url, "faint")
         u.setTextInteractionFlags(Qt.TextSelectableByMouse)
         u.setAlignment(Qt.AlignCenter)
         v.addWidget(u)
-        v.addWidget(label("Se il telefono non si collega: quando Windows chiede, consenti a NOVA l'accesso alle "
-                          "reti private.", "faint", wrap=True))
-        b = button("Chiudi", "primary", None, self.accept)
+        v.addWidget(label("If the phone doesn't connect: when Windows asks, allow NOVA on private networks.", "faint", wrap=True))
+        b = button("Close", "primary", None, self.accept)
         v.addWidget(b, 0, Qt.AlignRight)
 
 

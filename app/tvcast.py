@@ -184,21 +184,19 @@ class CastSession(QObject):
                 return
             if self._sub_key == key and self._sub_file:
                 QTimer.singleShot(0, self, lambda: self._restart(self.position(),
-                                                                why="Sottotitoli pronti: li aggiungo sulla TV…"))
+                                                                why="Subtitles ready: adding them on the TV…"))
                 return
 
     def _on_started(self, ok, note, gen):
         if gen != self.gen:
             return
         if not ok:
-            self.status.emit(f"La TV non ha accettato lo stream ({note}). Controlla che sia accesa e sullo stesso "
-                             "Wi-Fi, e che Windows permetta a NOVA le reti private.", "err")
+            self.status.emit(f"The TV didn't accept the stream ({note}). Check that it's on and on the same Wi-Fi, and that Windows allows NOVA on private networks.", "err")
             return
         if note == "subs-link":
-            self.status.emit("Sulla TV i sottotitoli dentro un link non si possono mettere (servirebbe scaricare "
-                             "tutto il film): scaricalo, oppure carica un file .srt.", "info")
+            self.status.emit("Subtitles inside a link can't be shown on the TV (it would need to download the whole movie): download it, or load an .srt file.", "info")
         elif note == "subs-later":
-            self.status.emit("Preparo i sottotitoli per la TV: compaiono tra poco.", "info")
+            self.status.emit("Preparing the subtitles for the TV: they'll show up shortly.", "info")
 
     # ---------- comandi ----------
     def seek(self, pos: float):
@@ -299,10 +297,10 @@ class CastSession(QObject):
         m = self._media() or {}
         h = min(h, int(m.get("h") or h))
         if self._pending is not None:
-            return f"TV · salto a {_t(self._pending)}…"
+            return f"TV · jumping to {_t(self._pending)}…"
         if not m.get("first_byte"):
-            return f"TV · avvio {h}p…"
-        q = "auto" if self.auto else "fissa"
+            return f"TV · starting {h}p…"
+        q = "auto" if self.auto else "fixed"
         return f"TV · {h}p {kb / 1000:g} Mbit/s ({q}) · buffer {self.buffer_ahead():.0f}s"
 
     def _got_tvpos(self, rel, gen):
@@ -318,11 +316,11 @@ class CastSession(QObject):
             return
         if m.get("failed"):
             m["failed"] = False
-            self.status.emit("Non riesco a preparare il video per la TV: " + (m.get("err") or "errore di ffmpeg")[:160],
+            self.status.emit("Can't prepare the video for the TV: " + (m.get("err") or "ffmpeg error")[:160],
                              "err")
             return
         if self.duration and self.position() >= self.duration - 1.5 and m.get("ended"):
-            self.status.emit("Film finito sulla TV.", "info")
+            self.status.emit("Movie finished on the TV.", "info")
             self.page.stop_cast()
             return
         # chiede alla TV dove si trova (ogni 3 s, in background)
@@ -354,8 +352,7 @@ class CastSession(QObject):
                 self._last_down = now
                 self._learn()
                 h, kb = L.TV_LADDER[self.level]
-                self._restart(self.position(), why=f"Wi-Fi lento: passo a {h}p {kb / 1000:g} Mbit/s per non "
-                                                    "far scattare il film.")
+                self._restart(self.position(), why=f"Slow Wi-Fi: switching to {h}p {kb / 1000:g} Mbit/s so the movie doesn't stutter.")
                 return
         self.changed.emit()
 

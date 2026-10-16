@@ -87,7 +87,7 @@ def _launch_command() -> str:
 def register_associations(video_ext, audio_ext) -> str:
     """Registra NOVA in 'Apri con', nel menu contestuale, per magnet: e .torrent (solo utente corrente)."""
     if not IS_WIN:
-        return "Disponibile solo su Windows."
+        return "Only available on Windows."
     import winreg
     cmd = _launch_command()
     from .config import ROOT
@@ -100,15 +100,15 @@ def register_associations(video_ext, audio_ext) -> str:
         winreg.SetValueEx(k, name, 0, winreg.REG_SZ, value)
         winreg.CloseKey(k)
 
-    setv(rf"{base}\NOVA.Media", "", "File multimediale")
+    setv(rf"{base}\NOVA.Media", "", "Media file")
     setv(rf"{base}\NOVA.Media\DefaultIcon", "", icon)
     setv(rf"{base}\NOVA.Media\shell\open\command", "", cmd)
-    setv(rf"{base}\NOVA.Torrent", "", "File torrent")
+    setv(rf"{base}\NOVA.Torrent", "", "Torrent file")
     setv(rf"{base}\NOVA.Torrent\DefaultIcon", "", icon)
     setv(rf"{base}\NOVA.Torrent\shell\open\command", "", cmd)
     for ext in sorted(set(video_ext) | set(audio_ext)):
         setv(rf"{base}\{ext}\OpenWithProgids", "NOVA.Media", "")
-        setv(rf"{base}\SystemFileAssociations\{ext}\shell\NOVA", "", "Apri con NOVA")
+        setv(rf"{base}\SystemFileAssociations\{ext}\shell\NOVA", "", "Open with NOVA")
         setv(rf"{base}\SystemFileAssociations\{ext}\shell\NOVA", "Icon", icon)
         setv(rf"{base}\SystemFileAssociations\{ext}\shell\NOVA\command", "", cmd)
     setv(rf"{base}\.torrent\OpenWithProgids", "NOVA.Torrent", "")
@@ -120,8 +120,7 @@ def register_associations(video_ext, audio_ext) -> str:
         ctypes.windll.shell32.SHChangeNotify(0x08000000, 0, None, None)
     except Exception:
         pass
-    return ("Fatto. NOVA ora compare in 'Apri con' e nel menu contestuale, e apre i link magnet. "
-            "Per renderlo il lettore predefinito: Impostazioni di Windows › App › App predefinite › NOVA.")
+    return ("Done. NOVA now shows up in 'Open with' and in the context menu, and opens magnet links. To make it the default player: Windows Settings › Apps › Default apps › NOVA.")
 
 
 def set_autostart(on: bool):

@@ -110,7 +110,7 @@ if __name__ == "__main__":
     except Exception:
         log_exceptions(*sys.exc_info())
         try:
-            QMessageBox.critical(None, "NOVA", "Errore all'avvio. Dettagli in:\n" + str(DATA / "logs" / "crash.log"))
+            QMessageBox.critical(None, "NOVA", "Startup error. Details in:\n" + str(DATA / "logs" / "crash.log"))
         except Exception:
             pass
         raise

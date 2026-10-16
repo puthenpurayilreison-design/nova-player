@@ -56,8 +56,8 @@ def month_summary() -> str:
     if secs < 60:
         return ""
     h = secs / 3600
-    t = f"{h:.0f} ore" if h >= 1.5 else f"{secs / 60:.0f} minuti"
-    return f"Questo mese: {t} di visione" + (f" · {fin} {'film finito' if fin == 1 else 'film finiti'}" if fin else "")
+    t = f"{h:.0f} hours" if h >= 1.5 else f"{secs / 60:.0f} minutes"
+    return f"This month: {t} watched" + (f" · {fin} {'movie finished' if fin == 1 else 'movies finished'}" if fin else "")
 
 
 def item_title(it: dict) -> str:
@@ -99,7 +99,7 @@ class Catalog(QObject):
         good_file = bool(names.VIDEO_SUFFIX.search(fname)) and not re.fullmatch(r"[0-9a-f]{16,}\.\w+", fname, re.I)
         if good_file:
             return fname
-        if title and not title.startswith(("http://", "https://")) and title not in ("Caricamento…",) \
+        if title and not title.startswith(("http://", "https://")) and title not in ("Loading…",) \
                 and not re.fullmatch(r"[0-9a-f]{16,}", title, re.I):
             return title
         return fname if not re.fullmatch(r"[0-9a-f]{16,}", fname, re.I) else ""
