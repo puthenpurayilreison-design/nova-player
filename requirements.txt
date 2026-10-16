@@ -1,0 +1,6 @@
+PySide6>=6.7
+python-mpv>=1.0.7
+libtorrent>=2.0.11
+yt-dlp>=2025.1.1
+py7zr>=0.21
+qrcode>=7.4
