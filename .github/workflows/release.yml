@@ -1,15 +1,17 @@
 name: Build & Release
 
 on:
-  push:
-    tags: ["v*"]
+ 
   release:
     types: [published]
   workflow_dispatch:
 
 permissions:
   contents: write
-
+  
+env:
+     PYTHONUTF8: "1"
+     PYTHONIOENCODING: utf-8
 jobs:
   windows:
     runs-on: windows-latest
